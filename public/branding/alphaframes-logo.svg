@@ -1,0 +1,27 @@
+<svg width="1000" height="1000" viewBox="0 0 1000 1000" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1000" height="1000" fill="black"/>
+
+  <!-- AF shape -->
+  <polygon points="250,600 400,300 500,300 350,650" fill="#E5E5E5"/>
+  <rect x="500" y="300" width="200" height="60" fill="#E5E5E5"/>
+  <rect x="500" y="420" width="150" height="60" fill="#E5E5E5"/>
+
+  <!-- Growth line -->
+  <polyline points="200,700 350,600 450,650 600,550 800,400"
+            fill="none"
+            stroke="#00FF88"
+            stroke-width="12"/>
+
+  <!-- Arrow -->
+  <polygon points="800,400 780,420 820,420" fill="#00FF88"/>
+
+  <!-- Text -->
+  <text x="500" y="850"
+        font-size="80"
+        fill="white"
+        text-anchor="middle"
+        font-family="Arial, Helvetica, sans-serif"
+        letter-spacing="8">
+    ALPHAFRAMES
+  </text>
+</svg>
