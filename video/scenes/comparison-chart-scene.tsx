@@ -38,6 +38,30 @@ export function ComparisonChartScene({data}: {data: ComparisonVideoData}) {
   const endX = 110 + 860;
   const primaryEndY = 400 + normalizedPrimary[normalizedPrimary.length - 1] * 520;
   const secondaryEndY = 400 + normalizedSecondary[normalizedSecondary.length - 1] * 520;
+  const defaultChipX = Math.max(120, endX - 250);
+  const alternateChipX = Math.max(40, endX - 520);
+  const chipWidth = 230;
+  const chipHeight = 86;
+  const minVerticalGap = 18;
+  const overlapThreshold = chipHeight + minVerticalGap;
+  let primaryChipY = primaryEndY - 56;
+  let secondaryChipY = secondaryEndY - 56;
+  let primaryChipX = defaultChipX;
+  let secondaryChipX = defaultChipX;
+
+  if (Math.abs(primaryChipY - secondaryChipY) < overlapThreshold) {
+    const midpoint = (primaryChipY + secondaryChipY) / 2;
+    primaryChipY = midpoint - overlapThreshold / 2;
+    secondaryChipY = midpoint + overlapThreshold / 2;
+
+    if (Math.abs(primaryEndY - secondaryEndY) < 54) {
+      primaryChipX = alternateChipX;
+      secondaryChipX = defaultChipX;
+    }
+  }
+
+  primaryChipY = Math.max(220, Math.min(primaryChipY, 1460));
+  secondaryChipY = Math.max(220, Math.min(secondaryChipY, 1460));
 
   return (
     <AbsoluteFill style={{padding: '0 60px'}}>
@@ -46,9 +70,25 @@ export function ComparisonChartScene({data}: {data: ComparisonVideoData}) {
         <path d={secondaryPath} fill="none" stroke={data.secondaryAsset.color} strokeWidth={12} strokeLinecap="round" />
         <circle cx={endX} cy={primaryEndY} r="16" fill={data.primaryAsset.color} opacity={finalLabelOpacity} />
         <circle cx={endX} cy={secondaryEndY} r="16" fill={data.secondaryAsset.color} opacity={finalLabelOpacity} />
+        <path
+          d={`M ${endX - 6} ${primaryEndY} C ${endX - 38} ${primaryEndY}, ${primaryChipX + chipWidth - 36} ${primaryChipY + 43}, ${primaryChipX + chipWidth - 12} ${primaryChipY + 43}`}
+          fill="none"
+          stroke={data.primaryAsset.color}
+          strokeWidth={4}
+          strokeOpacity={0.55 * finalLabelOpacity}
+          strokeLinecap="round"
+        />
+        <path
+          d={`M ${endX - 6} ${secondaryEndY} C ${endX - 38} ${secondaryEndY}, ${secondaryChipX + chipWidth - 36} ${secondaryChipY + 43}, ${secondaryChipX + chipWidth - 12} ${secondaryChipY + 43}`}
+          fill="none"
+          stroke={data.secondaryAsset.color}
+          strokeWidth={4}
+          strokeOpacity={0.55 * finalLabelOpacity}
+          strokeLinecap="round"
+        />
         <AssetChip
-          x={Math.max(120, endX - 250)}
-          y={primaryEndY - 56}
+          x={primaryChipX}
+          y={primaryChipY}
           ticker={data.primaryAsset.ticker}
           tickerColor={data.primaryAsset.color}
           value={formatCurrency(data.primaryAsset.valueToday, data.currency)}
@@ -56,8 +96,8 @@ export function ComparisonChartScene({data}: {data: ComparisonVideoData}) {
           opacity={finalLabelOpacity}
         />
         <AssetChip
-          x={Math.max(120, endX - 250)}
-          y={secondaryEndY - 56}
+          x={secondaryChipX}
+          y={secondaryChipY}
           ticker={data.secondaryAsset.ticker}
           tickerColor={data.secondaryAsset.color}
           value={formatCurrency(data.secondaryAsset.valueToday, data.currency)}

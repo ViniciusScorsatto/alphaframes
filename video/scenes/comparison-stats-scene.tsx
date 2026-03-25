@@ -7,10 +7,7 @@ export function ComparisonStatsScene({data}: {data: ComparisonVideoData}) {
   const frame = useCurrentFrame();
   const primaryPerformanceColor = data.primaryAsset.return >= 0 ? videoTheme.gain : videoTheme.loss;
   const secondaryPerformanceColor = data.secondaryAsset.return >= 0 ? videoTheme.gain : videoTheme.loss;
-  const winnerColor =
-    data.primaryAsset.return >= data.secondaryAsset.return
-      ? primaryPerformanceColor
-      : secondaryPerformanceColor;
+  const winnerColor = data.deltaReturn > 0 ? videoTheme.gain : videoTheme.secondary;
   const opacity = interpolate(frame, [186, 214], [0, 1], {
     extrapolateLeft: 'clamp',
     extrapolateRight: 'clamp',

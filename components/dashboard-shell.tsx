@@ -410,8 +410,11 @@ export function DashboardShell() {
                   compositionHeight={VIDEO.height}
                   fps={VIDEO.fps}
                   controls
-                  autoPlay
                   loop
+                  showVolumeControls
+                  initiallyMuted={false}
+                  initiallyShowControls
+                  volumePersistenceKey="alphaframes-preview-volume"
                   style={{width: '100%', aspectRatio: '9 / 16'}}
                 />
               ) : selectedItem && selectedItem.kind === 'comparison' ? (
@@ -423,8 +426,11 @@ export function DashboardShell() {
                   compositionHeight={VIDEO.height}
                   fps={VIDEO.fps}
                   controls
-                  autoPlay
                   loop
+                  showVolumeControls
+                  initiallyMuted={false}
+                  initiallyShowControls
+                  volumePersistenceKey="alphaframes-preview-volume"
                   style={{width: '100%', aspectRatio: '9 / 16'}}
                 />
               ) : (

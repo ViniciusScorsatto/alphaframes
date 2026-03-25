@@ -12,6 +12,14 @@ const OUTPUT_DIR = path.join(process.cwd(), 'public', 'renders');
 let bundleLocationPromise: Promise<string> | null = null;
 
 async function getBundleLocation() {
+  if (process.env.NODE_ENV !== 'production') {
+    return bundle({
+      entryPoint: REMOTION_ENTRY,
+      onProgress: () => undefined,
+      webpackOverride: (config) => config,
+    });
+  }
+
   if (!bundleLocationPromise) {
     bundleLocationPromise = bundle({
       entryPoint: REMOTION_ENTRY,
