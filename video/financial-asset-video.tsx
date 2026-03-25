@@ -4,6 +4,7 @@ import type {GeneratedVideoData} from '../types';
 import {ContextScene} from './scenes/context-scene';
 import {GrowthScene} from './scenes/growth-scene';
 import {HookScene} from './scenes/hook-scene';
+import {DisclaimerScene} from './scenes/disclaimer-scene';
 import {LogoIntroScene} from './scenes/logo-intro-scene';
 import {ResultScene} from './scenes/result-scene';
 import {TimelineScene} from './scenes/timeline-scene';
@@ -49,6 +50,7 @@ export function FinancialAssetVideo({data}: {data: GeneratedVideoData}) {
       <Sequence from={48}>
         <ResultScene label={data.resultLabel} insights={data.insights} />
       </Sequence>
+      <DisclaimerScene />
     </AbsoluteFill>
   );
 }

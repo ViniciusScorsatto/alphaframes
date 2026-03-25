@@ -1,4 +1,4 @@
-import {AbsoluteFill} from 'remotion';
+import {AbsoluteFill, interpolate, useCurrentFrame} from 'remotion';
 import {formatCurrency} from '../../lib/utils';
 import type {ComparisonVideoData} from '../../types';
 import {videoTheme} from '../theme';
@@ -11,15 +11,27 @@ function normalize(values: number[]) {
 }
 
 export function ComparisonChartScene({data}: {data: ComparisonVideoData}) {
+  const frame = useCurrentFrame();
+  const progress = interpolate(frame, [36, 165], [0, 1], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
+  const finalLabelOpacity = interpolate(frame, [170, 188], [0, 1], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
   const normalizedPrimary = normalize(data.comparisonTimeline.map((point) => point.primaryValue));
   const normalizedSecondary = normalize(data.comparisonTimeline.map((point) => point.secondaryValue));
   const primaryPerformanceColor = data.primaryAsset.return >= 0 ? videoTheme.gain : videoTheme.loss;
   const secondaryPerformanceColor = data.secondaryAsset.return >= 0 ? videoTheme.gain : videoTheme.loss;
+  const visibleCount = Math.max(2, Math.floor(data.comparisonTimeline.length * progress));
 
   const primaryPath = data.comparisonTimeline
+    .slice(0, visibleCount)
     .map((point, index) => `${index === 0 ? 'M' : 'L'} ${110 + (index / Math.max(data.comparisonTimeline.length - 1, 1)) * 860} ${400 + normalizedPrimary[index] * 520}`)
     .join(' ');
   const secondaryPath = data.comparisonTimeline
+    .slice(0, visibleCount)
     .map((point, index) => `${index === 0 ? 'M' : 'L'} ${110 + (index / Math.max(data.comparisonTimeline.length - 1, 1)) * 860} ${400 + normalizedSecondary[index] * 520}`)
     .join(' ');
 
@@ -32,8 +44,8 @@ export function ComparisonChartScene({data}: {data: ComparisonVideoData}) {
       <svg width="100%" height="100%" viewBox="0 0 1080 1920">
         <path d={primaryPath} fill="none" stroke={data.primaryAsset.color} strokeWidth={12} strokeLinecap="round" />
         <path d={secondaryPath} fill="none" stroke={data.secondaryAsset.color} strokeWidth={12} strokeLinecap="round" />
-        <circle cx={endX} cy={primaryEndY} r="16" fill={data.primaryAsset.color} />
-        <circle cx={endX} cy={secondaryEndY} r="16" fill={data.secondaryAsset.color} />
+        <circle cx={endX} cy={primaryEndY} r="16" fill={data.primaryAsset.color} opacity={finalLabelOpacity} />
+        <circle cx={endX} cy={secondaryEndY} r="16" fill={data.secondaryAsset.color} opacity={finalLabelOpacity} />
         <AssetChip
           x={Math.max(120, endX - 250)}
           y={primaryEndY - 56}
@@ -41,6 +53,7 @@ export function ComparisonChartScene({data}: {data: ComparisonVideoData}) {
           tickerColor={data.primaryAsset.color}
           value={formatCurrency(data.primaryAsset.valueToday, data.currency)}
           valueColor={primaryPerformanceColor}
+          opacity={finalLabelOpacity}
         />
         <AssetChip
           x={Math.max(120, endX - 250)}
@@ -49,6 +62,7 @@ export function ComparisonChartScene({data}: {data: ComparisonVideoData}) {
           tickerColor={data.secondaryAsset.color}
           value={formatCurrency(data.secondaryAsset.valueToday, data.currency)}
           valueColor={secondaryPerformanceColor}
+          opacity={finalLabelOpacity}
         />
       </svg>
     </AbsoluteFill>
@@ -62,6 +76,7 @@ function AssetChip({
   tickerColor,
   value,
   valueColor,
+  opacity,
 }: {
   x: number;
   y: number;
@@ -69,9 +84,10 @@ function AssetChip({
   tickerColor: string;
   value: string;
   valueColor: string;
+  opacity: number;
 }) {
   return (
-    <g transform={`translate(${x}, ${y})`}>
+    <g transform={`translate(${x}, ${y})`} opacity={opacity}>
       <rect
         x="0"
         y="0"

@@ -1,9 +1,12 @@
-import type {ComparisonTimelinePoint, ComparisonVideoData, NormalizedAssetData} from '@/types';
+import type {ComparisonTimelinePoint, ComparisonVideoData, LookbackWindow, NormalizedAssetData} from '@/types';
 import {formatCurrency, formatPercent} from '@/lib/utils';
+import {sliceByLookback} from '@/templates/shared';
 
-function alignTimelines(primary: NormalizedAssetData, secondary: NormalizedAssetData) {
-  const secondaryByDate = new Map(secondary.historical.map((point) => [point.date, point]));
-  return primary.historical
+function alignTimelines(primary: NormalizedAssetData, secondary: NormalizedAssetData, lookbackWindow: LookbackWindow = 180) {
+  const primaryWindow = sliceByLookback(primary.historical, lookbackWindow);
+  const secondaryWindow = sliceByLookback(secondary.historical, lookbackWindow);
+  const secondaryByDate = new Map(secondaryWindow.map((point) => [point.date, point]));
+  return primaryWindow
     .map((point) => {
       const other = secondaryByDate.get(point.date);
       if (!other) {
@@ -17,16 +20,16 @@ function alignTimelines(primary: NormalizedAssetData, secondary: NormalizedAsset
         secondaryPrice: other.price,
       };
     })
-    .filter((point): point is NonNullable<typeof point> => point !== null)
-    .slice(-180);
+    .filter((point): point is NonNullable<typeof point> => point !== null);
 }
 
 export function compareAssetsTemplate(
   primary: NormalizedAssetData,
   secondary: NormalizedAssetData,
   investment: number,
+  lookbackWindow: LookbackWindow = 180,
 ): ComparisonVideoData {
-  const aligned = alignTimelines(primary, secondary);
+  const aligned = alignTimelines(primary, secondary, lookbackWindow);
 
   if (aligned.length < 2) {
     throw new Error(`Not enough overlapping history to compare ${primary.ticker} and ${secondary.ticker}.`);

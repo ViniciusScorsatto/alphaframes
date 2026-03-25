@@ -1,9 +1,9 @@
-import type {NormalizedAssetData} from '@/types';
-import {createBaseResult} from '@/templates/shared';
+import type {LookbackWindow, NormalizedAssetData} from '@/types';
+import {createBaseResult, sliceByLookback} from '@/templates/shared';
 import {formatCurrency} from '@/lib/utils';
 
-export function thenVsNowTemplate(asset: NormalizedAssetData, investment: number) {
-  const period = asset.historical;
+export function thenVsNowTemplate(asset: NormalizedAssetData, investment: number, lookbackWindow: LookbackWindow = 'max') {
+  const period = sliceByLookback(asset.historical, lookbackWindow);
   const startPrice = period[0]?.price ?? asset.currentPrice;
   const valueToday = investment * (asset.currentPrice / startPrice);
 

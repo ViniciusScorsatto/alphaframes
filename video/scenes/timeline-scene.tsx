@@ -14,7 +14,11 @@ export function TimelineScene({
   bestBuyDate?: string;
 }) {
   const frame = useCurrentFrame();
-  const progress = interpolate(frame, [40, 145], [0, 1], {
+  const progress = interpolate(frame, [36, 165], [0, 1], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
+  const finalLabelOpacity = interpolate(frame, [170, 188], [0, 1], {
     extrapolateLeft: 'clamp',
     extrapolateRight: 'clamp',
   });
@@ -111,7 +115,7 @@ export function TimelineScene({
           </g>
         ) : null}
         {endPoint ? (
-          <g opacity={progress}>
+          <g opacity={finalLabelOpacity}>
             <circle cx={90 + endPoint.x * 900} cy={420 + endPoint.y * 520} r="14" fill={videoTheme.gain} />
             <text
               x={90 + endPoint.x * 900}

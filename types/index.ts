@@ -8,6 +8,9 @@ export type TemplateId =
   | 'THEN_VS_NOW'
   | 'COMPARE_ASSETS';
 
+export type LookbackWindow = 30 | 90 | 180 | 365 | 'max';
+export type DcaCadence = 'weekly' | 'biweekly' | 'monthly';
+
 export interface HistoricalPricePoint {
   date: string;
   timestamp: number;
@@ -103,6 +106,8 @@ export interface GenerateRequestPayload {
   tickers: GenerateRequestItem[];
   template: TemplateId;
   investment: number;
+  lookbackWindow?: LookbackWindow;
+  dcaCadence?: DcaCadence;
   comparison?: {
     primary: GenerateRequestItem;
     secondary: GenerateRequestItem;

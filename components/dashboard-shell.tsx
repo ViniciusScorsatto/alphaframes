@@ -4,13 +4,15 @@ import {useEffect, useMemo, useState, useTransition} from 'react';
 import {Player} from '@remotion/player';
 import {ComparisonAssetVideo} from '@/video/comparison-asset-video';
 import {FinancialAssetVideo} from '@/video/financial-asset-video';
-import {VIDEO, TEMPLATE_OPTIONS} from '@/lib/constants';
+import {DCA_CADENCE_OPTIONS, LOOKBACK_OPTIONS, VIDEO, TEMPLATE_OPTIONS} from '@/lib/constants';
 import {Button, Input, Label, Select, Textarea} from '@/components/ui';
 import {formatCurrency, formatDisplayDate, formatPercent} from '@/lib/utils';
 import type {
   AssetType,
   AnyGeneratedVideoData,
+  DcaCadence,
   GenerateResponsePayload,
+  LookbackWindow,
   RenderedVideoResult,
   TemplateId,
 } from '@/types';
@@ -33,6 +35,8 @@ export function DashboardShell() {
   const [comparisonSecondaryTicker, setComparisonSecondaryTicker] = useState('VOO');
   const [comparisonSecondaryType, setComparisonSecondaryType] = useState<AssetType>('etf');
   const [template, setTemplate] = useState<TemplateId>('LAST_30_DAYS');
+  const [lookbackWindow, setLookbackWindow] = useState<LookbackWindow>(180);
+  const [dcaCadence, setDcaCadence] = useState<DcaCadence>('weekly');
   const [investment, setInvestment] = useState(1000);
   const [generatedItems, setGeneratedItems] = useState<AnyGeneratedVideoData[]>([]);
   const [selectedIndex, setSelectedIndex] = useState(0);
@@ -58,6 +62,8 @@ export function DashboardShell() {
   const selectedItem = generatedItems[selectedIndex] ?? null;
   const tickerCount = useMemo(() => parseTickers(tickersInput, assetType).length, [tickersInput, assetType]);
   const isComparisonTemplate = template === 'COMPARE_ASSETS';
+  const supportsLookback = ['BEST_DAY_TO_BUY', 'DCA_STRATEGY', 'THEN_VS_NOW', 'COMPARE_ASSETS'].includes(template);
+  const isDcaTemplate = template === 'DCA_STRATEGY';
 
   const handleGenerate = () => {
     setError(null);
@@ -81,6 +87,7 @@ export function DashboardShell() {
                 primary: {ticker: comparisonPrimaryTicker.trim(), assetType: comparisonPrimaryType},
                 secondary: {ticker: comparisonSecondaryTicker.trim(), assetType: comparisonSecondaryType},
               },
+              lookbackWindow,
             }),
           });
           const payload = (await response.json()) as GenerateResponsePayload & {error?: string};
@@ -115,6 +122,8 @@ export function DashboardShell() {
             tickers: parsedTickers,
             template,
             investment,
+            lookbackWindow: supportsLookback ? lookbackWindow : undefined,
+            dcaCadence: isDcaTemplate ? dcaCadence : undefined,
           }),
         });
         const payload = (await response.json()) as GenerateResponsePayload & {error?: string};
@@ -258,6 +267,45 @@ export function DashboardShell() {
                 />
               </div>
             </div>
+
+            {supportsLookback ? (
+              <div>
+                <Label>Graph Range</Label>
+                <Select
+                  value={String(lookbackWindow)}
+                  onChange={(event) =>
+                    setLookbackWindow(
+                      event.target.value === 'max' ? 'max' : Number(event.target.value) as LookbackWindow,
+                    )
+                  }
+                >
+                  {LOOKBACK_OPTIONS.map((option) => (
+                    <option key={String(option.value)} value={String(option.value)}>
+                      {option.label}
+                    </option>
+                  ))}
+                </Select>
+                <p className="mt-2 text-xs text-zinc-500">
+                  Choose how much history the graph should use for this video.
+                </p>
+              </div>
+            ) : null}
+
+            {isDcaTemplate ? (
+              <div>
+                <Label>DCA Cadence</Label>
+                <Select value={dcaCadence} onChange={(event) => setDcaCadence(event.target.value as DcaCadence)}>
+                  {DCA_CADENCE_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </Select>
+                <p className="mt-2 text-xs text-zinc-500">
+                  Choose how often the simulated DCA buys should happen.
+                </p>
+              </div>
+            ) : null}
 
             <div>
               <Label>Template</Label>

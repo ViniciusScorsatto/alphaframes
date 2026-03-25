@@ -16,6 +16,8 @@ const requestSchema = z
     tickers: z.array(requestItemSchema),
     template: z.enum(['LAST_30_DAYS', 'LAST_1_YEAR', 'BEST_DAY_TO_BUY', 'DCA_STRATEGY', 'THEN_VS_NOW', 'COMPARE_ASSETS']),
     investment: z.number().positive(),
+    lookbackWindow: z.union([z.literal(30), z.literal(90), z.literal(180), z.literal(365), z.literal('max')]).optional(),
+    dcaCadence: z.enum(['weekly', 'biweekly', 'monthly']).optional(),
     comparison: z
       .object({
         primary: requestItemSchema,
@@ -58,14 +60,14 @@ export async function POST(request: Request) {
       ]);
 
       return NextResponse.json<GenerateResponsePayload>({
-        items: [generateComparisonData(primary, secondary, body.investment)],
+        items: [generateComparisonData(primary, secondary, body.investment, body.lookbackWindow)],
       });
     }
 
     const items = await Promise.all(
       body.tickers.map(async ({ticker, assetType}) => {
         const asset = await getAssetData(ticker, assetType);
-        return generateTemplateData(asset, body.template, body.investment);
+        return generateTemplateData(asset, body.template, body.investment, body.lookbackWindow, body.dcaCadence);
       }),
     );
 

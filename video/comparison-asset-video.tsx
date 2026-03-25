@@ -3,6 +3,7 @@ import type {ComparisonVideoData} from '../types';
 import {ComparisonChartScene} from './scenes/comparison-chart-scene';
 import {ComparisonHeaderScene} from './scenes/comparison-header-scene';
 import {ComparisonStatsScene} from './scenes/comparison-stats-scene';
+import {DisclaimerScene} from './scenes/disclaimer-scene';
 import {LogoIntroScene} from './scenes/logo-intro-scene';
 
 export function ComparisonAssetVideo({data}: {data: ComparisonVideoData}) {
@@ -37,6 +38,7 @@ export function ComparisonAssetVideo({data}: {data: ComparisonVideoData}) {
       <Sequence from={48}>
         <ComparisonStatsScene data={data} />
       </Sequence>
+      <DisclaimerScene />
     </AbsoluteFill>
   );
 }

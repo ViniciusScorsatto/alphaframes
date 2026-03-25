@@ -1,18 +1,23 @@
-import {AbsoluteFill} from 'remotion';
+import {AbsoluteFill, interpolate, useCurrentFrame} from 'remotion';
 import {formatCurrency, formatPercent} from '../../lib/utils';
 import type {ComparisonVideoData} from '../../types';
 import {videoTheme} from '../theme';
 
 export function ComparisonStatsScene({data}: {data: ComparisonVideoData}) {
+  const frame = useCurrentFrame();
   const primaryPerformanceColor = data.primaryAsset.return >= 0 ? videoTheme.gain : videoTheme.loss;
   const secondaryPerformanceColor = data.secondaryAsset.return >= 0 ? videoTheme.gain : videoTheme.loss;
   const winnerColor =
     data.primaryAsset.return >= data.secondaryAsset.return
       ? primaryPerformanceColor
       : secondaryPerformanceColor;
+  const opacity = interpolate(frame, [186, 214], [0, 1], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
 
   return (
-    <AbsoluteFill style={{justifyContent: 'flex-end', padding: '0 72px 120px'}}>
+    <AbsoluteFill style={{justifyContent: 'flex-end', padding: '0 72px 120px', opacity}}>
       <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20}}>
         <Card
           title={data.primaryAsset.ticker}

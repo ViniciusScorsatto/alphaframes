@@ -1,8 +1,16 @@
-import type {GeneratedVideoData, HistoricalPricePoint, NormalizedAssetData, TemplateId} from '@/types';
+import type {GeneratedVideoData, HistoricalPricePoint, LookbackWindow, NormalizedAssetData, TemplateId} from '@/types';
 import {formatCurrency, formatPercent} from '@/lib/utils';
 
 export function sliceRecentDays(points: HistoricalPricePoint[], days: number) {
   return points.slice(Math.max(points.length - days, 0));
+}
+
+export function sliceByLookback(points: HistoricalPricePoint[], lookbackWindow?: LookbackWindow) {
+  if (!lookbackWindow || lookbackWindow === 'max') {
+    return points;
+  }
+
+  return sliceRecentDays(points, lookbackWindow);
 }
 
 export function getReturnPercent(startPrice: number, currentPrice: number) {

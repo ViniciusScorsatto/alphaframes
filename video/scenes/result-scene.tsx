@@ -4,7 +4,7 @@ import {videoTheme} from '../theme';
 
 export function ResultScene({label, insights}: {label: string; insights: string[]}) {
   const frame = useCurrentFrame();
-  const opacity = interpolate(frame, [205, 240], [0, 1], {
+  const opacity = interpolate(frame, [210, 238], [0, 1], {
     extrapolateLeft: 'clamp',
     extrapolateRight: 'clamp',
   });

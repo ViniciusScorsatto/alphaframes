@@ -14,11 +14,11 @@ export function GrowthScene({
   const frame = useCurrentFrame();
   const {fps} = useVideoConfig();
   const lift = spring({
-    frame: Math.max(frame - 160, 0),
+    frame: Math.max(frame - 176, 0),
     fps,
     config: {damping: 18, stiffness: 120},
   });
-  const opacity = interpolate(frame, [150, 185], [0, 1], {
+  const opacity = interpolate(frame, [176, 198], [0, 1], {
     extrapolateLeft: 'clamp',
     extrapolateRight: 'clamp',
   });

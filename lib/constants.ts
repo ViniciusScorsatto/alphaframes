@@ -1,4 +1,4 @@
-import type {TemplateId} from '@/types';
+import type {DcaCadence, LookbackWindow, TemplateId} from '@/types';
 
 export const TEMPLATE_OPTIONS: {label: string; value: TemplateId; description: string}[] = [
   {
@@ -39,3 +39,17 @@ export const VIDEO = {
   fps: 30,
   durationInFrames: 360,
 };
+
+export const LOOKBACK_OPTIONS: {label: string; value: LookbackWindow}[] = [
+  {label: '30 Days', value: 30},
+  {label: '90 Days', value: 90},
+  {label: '180 Days', value: 180},
+  {label: '1 Year', value: 365},
+  {label: 'Max History', value: 'max'},
+];
+
+export const DCA_CADENCE_OPTIONS: {label: string; value: DcaCadence}[] = [
+  {label: 'Weekly', value: 'weekly'},
+  {label: 'Biweekly', value: 'biweekly'},
+  {label: 'Monthly', value: 'monthly'},
+];
