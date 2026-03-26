@@ -1,6 +1,6 @@
 import type {DcaCadence, HistoricalPricePoint, LookbackWindow, NormalizedAssetData} from '@/types';
 import {createBaseResult, sliceByLookback} from '@/templates/shared';
-import {formatCurrency} from '@/lib/utils';
+import {formatCurrency, formatDisplayDate} from '@/lib/utils';
 
 function selectPurchases(period: HistoricalPricePoint[], cadence: DcaCadence) {
   if (cadence === 'monthly') {
@@ -45,6 +45,10 @@ export function dcaStrategyTemplate(
   const averageEntry = investment / sharesAccumulated;
   const valueToday = sharesAccumulated * asset.currentPrice;
   const cadenceLabel = formatCadenceLabel(dcaCadence);
+  const startDate = period[0]?.date;
+  const endDate = period[period.length - 1]?.date;
+  const dateRangeLabel =
+    startDate && endDate ? `${formatDisplayDate(startDate)} to ${formatDisplayDate(endDate)}` : 'the tracked period';
 
   return createBaseResult({
     asset,
@@ -54,10 +58,10 @@ export function dcaStrategyTemplate(
     startPrice: averageEntry,
     sharesAccumulated,
     hookLabel: `${purchases.length} buys -> ${formatCurrency(valueToday, asset.currency)}`,
-    contextLabel: `${cadenceLabel} DCA into ${asset.displayName} for the selected range`,
+    contextLabel: `${cadenceLabel} DCA into ${asset.displayName} from ${dateRangeLabel}`,
     resultLabel: `${formatCurrency(averageEntry, asset.currency)} avg cost`,
     insights: [
-      `This simulates ${purchases.length} ${dcaCadence} buys across the selected range.`,
+      `This simulates ${purchases.length} ${dcaCadence} buys from ${dateRangeLabel}.`,
       `Average entry lands around ${formatCurrency(averageEntry, asset.currency)} and the position is now ${formatCurrency(valueToday, asset.currency)}.`,
     ],
   });
