@@ -1,6 +1,8 @@
 import {AbsoluteFill, Audio, Sequence, staticFile} from 'remotion';
 import {formatCurrency} from '../lib/utils';
 import type {GeneratedVideoData} from '../types';
+import {getSingleIntroCopy} from './intro-copy';
+import {BrandWatermarkScene} from './scenes/brand-watermark-scene';
 import {ContextScene} from './scenes/context-scene';
 import {GrowthScene} from './scenes/growth-scene';
 import {HookScene} from './scenes/hook-scene';
@@ -10,6 +12,8 @@ import {ResultScene} from './scenes/result-scene';
 import {TimelineScene} from './scenes/timeline-scene';
 
 export function FinancialAssetVideo({data}: {data: GeneratedVideoData}) {
+  const introCopy = getSingleIntroCopy(data);
+
   return (
     <AbsoluteFill
       style={{
@@ -30,7 +34,10 @@ export function FinancialAssetVideo({data}: {data: GeneratedVideoData}) {
         />
       </AbsoluteFill>
       <Sequence from={0} durationInFrames={60}>
-        <LogoIntroScene />
+        <LogoIntroScene hookTitle={introCopy.hookTitle} hookSubtitle={introCopy.hookSubtitle} />
+      </Sequence>
+      <Sequence from={48}>
+        <BrandWatermarkScene />
       </Sequence>
       <Sequence from={48}>
         <HookScene label={data.hookLabel} />

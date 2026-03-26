@@ -1,7 +1,7 @@
 import {AbsoluteFill, Img, interpolate, spring, staticFile, useCurrentFrame, useVideoConfig} from 'remotion';
 import {videoTheme} from '../theme';
 
-export function LogoIntroScene() {
+export function LogoIntroScene({hookTitle, hookSubtitle}: {hookTitle: string; hookSubtitle: string}) {
   const frame = useCurrentFrame();
   const {fps} = useVideoConfig();
   const scale = spring({
@@ -36,6 +36,8 @@ export function LogoIntroScene() {
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
+          width: '100%',
+          maxWidth: 860,
           transform: `translateY(${translateY}px) scale(${0.92 + scale * 0.08})`,
         }}
       >
@@ -57,7 +59,7 @@ export function LogoIntroScene() {
           style={{
             marginTop: 30,
             color: videoTheme.secondary,
-            fontSize: 34,
+            fontSize: 24,
             letterSpacing: '0.32em',
             textTransform: 'uppercase',
           }}
@@ -66,15 +68,34 @@ export function LogoIntroScene() {
         </div>
         <div
           style={{
-            marginTop: 14,
+            marginTop: 30,
             color: videoTheme.foreground,
-            fontSize: 22,
-            letterSpacing: '0.18em',
-            textTransform: 'uppercase',
-            opacity: 0.72,
+            fontSize: 74,
+            lineHeight: 1.04,
+            fontWeight: 800,
+            letterSpacing: '-0.04em',
+            textAlign: 'center',
+            maxWidth: 820,
           }}
         >
-          Market stories in motion
+          {hookTitle}
+        </div>
+        <div
+          style={{
+            marginTop: 20,
+            padding: '16px 22px',
+            borderRadius: 24,
+            border: `1px solid ${videoTheme.border}`,
+            background: 'rgba(255,255,255,0.05)',
+            color: videoTheme.secondary,
+            fontSize: 24,
+            letterSpacing: '0.03em',
+            textAlign: 'center',
+            maxWidth: 760,
+            lineHeight: 1.35,
+          }}
+        >
+          {hookSubtitle}
         </div>
       </div>
     </AbsoluteFill>
