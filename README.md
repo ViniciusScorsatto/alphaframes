@@ -41,6 +41,18 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000)
 
+Or use the included launcher script:
+
+```bash
+./start.sh
+```
+
+On macOS, you can also run:
+
+```bash
+./start.command
+```
+
 ## Render an MP4
 
 Use the dashboard `Render Video` button, or run:
