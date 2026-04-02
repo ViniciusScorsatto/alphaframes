@@ -13,6 +13,8 @@ import {TimelineScene} from './scenes/timeline-scene';
 
 export function FinancialAssetVideo({data}: {data: GeneratedVideoData}) {
   const introCopy = getSingleIntroCopy(data);
+  const introDuration = 72;
+  const contentStart = 60;
 
   return (
     <AbsoluteFill
@@ -33,28 +35,33 @@ export function FinancialAssetVideo({data}: {data: GeneratedVideoData}) {
           }}
         />
       </AbsoluteFill>
-      <Sequence from={0} durationInFrames={60}>
-        <LogoIntroScene hookTitle={introCopy.hookTitle} hookSubtitle={introCopy.hookSubtitle} />
+      <Sequence from={0} durationInFrames={introDuration}>
+        <LogoIntroScene
+          hookTitle={introCopy.hookTitle}
+          resultTease={introCopy.resultTease}
+          resultTone={introCopy.resultTone}
+          hookSubtitle={introCopy.hookSubtitle}
+        />
       </Sequence>
-      <Sequence from={48}>
+      <Sequence from={contentStart}>
         <BrandWatermarkScene />
       </Sequence>
-      <Sequence from={48}>
+      <Sequence from={contentStart}>
         <HookScene label={data.hookLabel} />
       </Sequence>
-      <Sequence from={48}>
+      <Sequence from={contentStart}>
         <ContextScene
           label={data.contextLabel}
           investmentLabel={formatCurrency(data.investment, data.currency)}
         />
       </Sequence>
-      <Sequence from={48}>
+      <Sequence from={contentStart}>
         <TimelineScene points={data.timeline} currency={data.currency} bestBuyDate={data.bestBuyDate} />
       </Sequence>
-      <Sequence from={48}>
+      <Sequence from={contentStart}>
         <GrowthScene valueToday={data.valueToday} returnPercent={data.return} currency={data.currency} />
       </Sequence>
-      <Sequence from={48}>
+      <Sequence from={contentStart}>
         <ResultScene label={data.resultLabel} insights={data.insights} />
       </Sequence>
       <DisclaimerScene />

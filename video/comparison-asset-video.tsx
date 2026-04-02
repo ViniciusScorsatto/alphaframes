@@ -10,6 +10,8 @@ import {LogoIntroScene} from './scenes/logo-intro-scene';
 
 export function ComparisonAssetVideo({data}: {data: ComparisonVideoData}) {
   const introCopy = getComparisonIntroCopy(data);
+  const introDuration = 72;
+  const contentStart = 60;
 
   return (
     <AbsoluteFill
@@ -30,19 +32,24 @@ export function ComparisonAssetVideo({data}: {data: ComparisonVideoData}) {
           }}
         />
       </AbsoluteFill>
-      <Sequence from={0} durationInFrames={60}>
-        <LogoIntroScene hookTitle={introCopy.hookTitle} hookSubtitle={introCopy.hookSubtitle} />
+      <Sequence from={0} durationInFrames={introDuration}>
+        <LogoIntroScene
+          hookTitle={introCopy.hookTitle}
+          resultTease={introCopy.resultTease}
+          resultTone={introCopy.resultTone}
+          hookSubtitle={introCopy.hookSubtitle}
+        />
       </Sequence>
-      <Sequence from={48}>
+      <Sequence from={contentStart}>
         <BrandWatermarkScene />
       </Sequence>
-      <Sequence from={48}>
+      <Sequence from={contentStart}>
         <ComparisonHeaderScene data={data} />
       </Sequence>
-      <Sequence from={48}>
+      <Sequence from={contentStart}>
         <ComparisonChartScene data={data} />
       </Sequence>
-      <Sequence from={48}>
+      <Sequence from={contentStart}>
         <ComparisonStatsScene data={data} />
       </Sequence>
       <DisclaimerScene />
