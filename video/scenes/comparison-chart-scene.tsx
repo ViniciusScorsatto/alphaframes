@@ -12,11 +12,11 @@ function normalize(values: number[]) {
 
 export function ComparisonChartScene({data}: {data: ComparisonVideoData}) {
   const frame = useCurrentFrame();
-  const progress = interpolate(frame, [36, 165], [0, 1], {
+  const progress = interpolate(frame, [24, 102], [0, 1], {
     extrapolateLeft: 'clamp',
     extrapolateRight: 'clamp',
   });
-  const finalLabelOpacity = interpolate(frame, [170, 188], [0, 1], {
+  const finalLabelOpacity = interpolate(frame, [108, 122], [0, 1], {
     extrapolateLeft: 'clamp',
     extrapolateRight: 'clamp',
   });

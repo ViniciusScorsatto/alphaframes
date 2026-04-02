@@ -6,14 +6,26 @@ export function LogoIntroScene({
   resultTease,
   resultTone,
   hookSubtitle,
+  showdownCards,
+  durationInFrames = 172,
 }: {
   hookTitle: string;
   resultTease: string;
   resultTone: 'gain' | 'loss' | 'neutral';
   hookSubtitle: string;
+  showdownCards?: Array<{
+    ticker: string;
+    assetType: string;
+    isWinner: boolean;
+  }>;
+  durationInFrames?: number;
 }) {
   const frame = useCurrentFrame();
   const {fps} = useVideoConfig();
+  const fadeStart = Math.max(durationInFrames - 34, 108);
+  const fadeEnd = Math.max(durationInFrames - 10, fadeStart + 8);
+  const darkWorldStart = Math.max(durationInFrames - 58, 88);
+  const darkWorldEnd = Math.max(durationInFrames - 8, darkWorldStart + 10);
   const hookScale = spring({
     frame,
     fps,
@@ -24,7 +36,7 @@ export function LogoIntroScene({
     fps,
     config: {damping: 14, stiffness: 150},
   });
-  const opacity = interpolate(frame, [0, 52, 68], [1, 1, 0], {
+  const opacity = interpolate(frame, [0, fadeStart, fadeEnd], [1, 1, 0], {
     extrapolateLeft: 'clamp',
     extrapolateRight: 'clamp',
   });
@@ -32,11 +44,11 @@ export function LogoIntroScene({
     extrapolateLeft: 'clamp',
     extrapolateRight: 'clamp',
   });
-  const plateOpacity = interpolate(frame, [0, 10, 48, 68], [0.96, 1, 0.9, 0], {
+  const plateOpacity = interpolate(frame, [0, 10, fadeStart - 8, fadeEnd], [0.96, 1, 0.9, 0], {
     extrapolateLeft: 'clamp',
     extrapolateRight: 'clamp',
   });
-  const darkWorldOpacity = interpolate(frame, [36, 72], [0, 1], {
+  const darkWorldOpacity = interpolate(frame, [darkWorldStart, darkWorldEnd], [0, 1], {
     extrapolateLeft: 'clamp',
     extrapolateRight: 'clamp',
   });
@@ -49,6 +61,10 @@ export function LogoIntroScene({
     extrapolateRight: 'clamp',
   });
   const logoOpacity = interpolate(frame, [0, 6, 60], [0.4, 0.82, 0.22], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
+  const cardsOpacity = interpolate(frame, [18, 34], [0, 1], {
     extrapolateLeft: 'clamp',
     extrapolateRight: 'clamp',
   });
@@ -185,7 +201,93 @@ export function LogoIntroScene({
         >
           {hookSubtitle}
         </div>
+        {showdownCards?.length ? (
+          <div
+            style={{
+              marginTop: 34,
+              display: 'flex',
+              gap: 18,
+              opacity: cardsOpacity,
+            }}
+          >
+            {showdownCards.map((card) => (
+              <ShowdownCard
+                key={`${card.ticker}-${card.assetType}`}
+                ticker={card.ticker}
+                assetType={card.assetType}
+                isWinner={card.isWinner}
+              />
+            ))}
+          </div>
+        ) : null}
       </div>
     </AbsoluteFill>
+  );
+}
+
+function ShowdownCard({
+  ticker,
+  assetType,
+  isWinner,
+}: {
+  ticker: string;
+  assetType: string;
+  isWinner: boolean;
+}) {
+  return (
+    <div
+      style={{
+        flex: 1,
+        minWidth: 0,
+        borderRadius: 34,
+        border: isWinner ? '3px solid rgba(0,255,136,0.82)' : '2px solid rgba(20,29,24,0.12)',
+        background: isWinner
+          ? 'linear-gradient(180deg, rgba(213,247,225,0.96), rgba(232,255,240,0.9))'
+          : 'linear-gradient(180deg, rgba(248,248,248,0.96), rgba(242,244,247,0.92))',
+        padding: '24px 28px 26px',
+        boxShadow: isWinner ? '0 24px 72px rgba(0,255,136,0.16)' : '0 18px 48px rgba(0,0,0,0.08)',
+      }}
+    >
+      <div
+        style={{
+          color: isWinner ? '#0a3b24' : '#6f7888',
+          fontSize: 18,
+          fontWeight: 800,
+          letterSpacing: '0.16em',
+          textTransform: 'uppercase',
+        }}
+      >
+        {isWinner ? 'Top Performer' : 'Challenger'}
+      </div>
+      <div
+        style={{
+          marginTop: 16,
+          color: isWinner ? '#0b3a24' : '#6f7888',
+          fontSize: 72,
+          lineHeight: 0.94,
+          fontWeight: 900,
+          letterSpacing: '-0.06em',
+        }}
+      >
+        {ticker}
+      </div>
+      <div
+        style={{
+          marginTop: 18,
+          display: 'inline-flex',
+          alignItems: 'center',
+          borderRadius: 999,
+          background: isWinner ? '#18aa4e' : 'rgba(111,120,136,0.14)',
+          color: isWinner ? '#f5fff8' : '#6f7888',
+          padding: '12px 20px',
+          fontSize: 22,
+          fontWeight: 800,
+          letterSpacing: '0.04em',
+          textTransform: 'uppercase',
+        }}
+      >
+        {isWinner ? 'Winner' : assetType}
+      </div>
+    </div>
   );
 }

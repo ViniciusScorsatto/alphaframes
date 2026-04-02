@@ -77,6 +77,7 @@ export function getSingleIntroCopy(data: GeneratedVideoData) {
 
 export function getComparisonIntroCopy(data: ComparisonVideoData) {
   const winner = data.winnerTicker === data.primaryAsset.ticker ? data.primaryAsset : data.secondaryAsset;
+  const otherAsset = winner.ticker === data.primaryAsset.ticker ? data.secondaryAsset : data.primaryAsset;
   const winnerValueLabel = formatCurrency(winner.valueToday, data.currency);
 
   return {
@@ -84,5 +85,17 @@ export function getComparisonIntroCopy(data: ComparisonVideoData) {
     resultTease: `${winner.ticker} finished at ${winnerValueLabel}`,
     resultTone: 'gain' as const,
     hookSubtitle: `${data.primaryAsset.name} (${toAssetTypeLabel(data.primaryAsset.assetType)}) vs ${data.secondaryAsset.name} (${toAssetTypeLabel(data.secondaryAsset.assetType)})`,
+    showdownCards: [
+      {
+        ticker: winner.ticker,
+        assetType: toAssetTypeLabel(winner.assetType),
+        isWinner: true,
+      },
+      {
+        ticker: otherAsset.ticker,
+        assetType: toAssetTypeLabel(otherAsset.assetType),
+        isWinner: false,
+      },
+    ],
   };
 }

@@ -2,6 +2,7 @@ import {AbsoluteFill, Audio, Sequence, staticFile} from 'remotion';
 import type {ComparisonVideoData} from '../types';
 import {getComparisonIntroCopy} from './intro-copy';
 import {BrandWatermarkScene} from './scenes/brand-watermark-scene';
+import {CallToActionScene} from './scenes/call-to-action-scene';
 import {ComparisonChartScene} from './scenes/comparison-chart-scene';
 import {ComparisonHeaderScene} from './scenes/comparison-header-scene';
 import {ComparisonStatsScene} from './scenes/comparison-stats-scene';
@@ -10,8 +11,8 @@ import {LogoIntroScene} from './scenes/logo-intro-scene';
 
 export function ComparisonAssetVideo({data}: {data: ComparisonVideoData}) {
   const introCopy = getComparisonIntroCopy(data);
-  const introDuration = 72;
-  const contentStart = 60;
+  const introDuration = 172;
+  const contentStart = 130;
 
   return (
     <AbsoluteFill
@@ -38,6 +39,8 @@ export function ComparisonAssetVideo({data}: {data: ComparisonVideoData}) {
           resultTease={introCopy.resultTease}
           resultTone={introCopy.resultTone}
           hookSubtitle={introCopy.hookSubtitle}
+          showdownCards={introCopy.showdownCards}
+          durationInFrames={introDuration}
         />
       </Sequence>
       <Sequence from={contentStart}>
@@ -52,6 +55,7 @@ export function ComparisonAssetVideo({data}: {data: ComparisonVideoData}) {
       <Sequence from={contentStart}>
         <ComparisonStatsScene data={data} />
       </Sequence>
+      <CallToActionScene />
       <DisclaimerScene />
     </AbsoluteFill>
   );

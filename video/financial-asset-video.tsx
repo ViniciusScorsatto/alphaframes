@@ -3,6 +3,7 @@ import {formatCurrency} from '../lib/utils';
 import type {GeneratedVideoData} from '../types';
 import {getSingleIntroCopy} from './intro-copy';
 import {BrandWatermarkScene} from './scenes/brand-watermark-scene';
+import {CallToActionScene} from './scenes/call-to-action-scene';
 import {ContextScene} from './scenes/context-scene';
 import {GrowthScene} from './scenes/growth-scene';
 import {HookScene} from './scenes/hook-scene';
@@ -13,8 +14,8 @@ import {TimelineScene} from './scenes/timeline-scene';
 
 export function FinancialAssetVideo({data}: {data: GeneratedVideoData}) {
   const introCopy = getSingleIntroCopy(data);
-  const introDuration = 72;
-  const contentStart = 60;
+  const introDuration = 172;
+  const contentStart = 130;
 
   return (
     <AbsoluteFill
@@ -41,6 +42,7 @@ export function FinancialAssetVideo({data}: {data: GeneratedVideoData}) {
           resultTease={introCopy.resultTease}
           resultTone={introCopy.resultTone}
           hookSubtitle={introCopy.hookSubtitle}
+          durationInFrames={introDuration}
         />
       </Sequence>
       <Sequence from={contentStart}>
@@ -64,6 +66,7 @@ export function FinancialAssetVideo({data}: {data: GeneratedVideoData}) {
       <Sequence from={contentStart}>
         <ResultScene label={data.resultLabel} insights={data.insights} />
       </Sequence>
+      <CallToActionScene />
       <DisclaimerScene />
     </AbsoluteFill>
   );
