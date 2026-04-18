@@ -1,7 +1,7 @@
 import {NextResponse} from 'next/server';
 import {z} from 'zod';
 import {getAssetData} from '@/data';
-import {generateComparisonData, generateTemplateData} from '@/templates';
+import {generateComparisonData, generateMarketTemplateData, generateTemplateData, isMarketTemplate} from '@/templates';
 import type {GenerateResponsePayload} from '@/types';
 
 export const runtime = 'nodejs';
@@ -14,7 +14,19 @@ const requestItemSchema = z.object({
 const requestSchema = z
   .object({
     tickers: z.array(requestItemSchema),
-    template: z.enum(['LAST_30_DAYS', 'LAST_1_YEAR', 'BEST_DAY_TO_BUY', 'DCA_STRATEGY', 'THEN_VS_NOW', 'COMPARE_ASSETS']),
+    template: z.enum([
+      'LAST_30_DAYS',
+      'LAST_1_YEAR',
+      'BEST_DAY_TO_BUY',
+      'DCA_STRATEGY',
+      'THEN_VS_NOW',
+      'COMPARE_ASSETS',
+      'MARKET_SNAPSHOT',
+      'NARRATIVE_DETECTOR',
+      'ANOMALY_DETECTOR',
+      'VOLATILITY_REGIME',
+      'PATTERN_MATCH',
+    ]),
     investment: z.number().positive(),
     lookbackWindow: z.union([z.literal(30), z.literal(90), z.literal(180), z.literal(365), z.literal('max')]).optional(),
     dcaCadence: z.enum(['weekly', 'biweekly', 'monthly']).optional(),
@@ -26,6 +38,10 @@ const requestSchema = z
       .optional(),
   })
   .superRefine((body, ctx) => {
+    if (isMarketTemplate(body.template)) {
+      return;
+    }
+
     if (body.template === 'COMPARE_ASSETS') {
       if (!body.comparison) {
         ctx.addIssue({
@@ -49,6 +65,12 @@ const requestSchema = z
 export async function POST(request: Request) {
   try {
     const body = requestSchema.parse(await request.json());
+    if (isMarketTemplate(body.template)) {
+      return NextResponse.json<GenerateResponsePayload>({
+        items: [await generateMarketTemplateData(body.template)],
+      });
+    }
+
     if (body.template === 'COMPARE_ASSETS') {
       if (!body.comparison) {
         throw new Error('Comparison mode requires two selected assets.');

@@ -31,6 +31,31 @@ export const TEMPLATE_OPTIONS: {label: string; value: TemplateId; description: s
     label: 'Compare Assets',
     description: 'Puts two assets head-to-head over the same historical window.',
   },
+  {
+    value: 'MARKET_SNAPSHOT',
+    label: 'Market Snapshot',
+    description: 'CoinGecko-only daily market overview using top-50 crypto breadth and category context.',
+  },
+  {
+    value: 'NARRATIVE_DETECTOR',
+    label: 'Narrative Detector',
+    description: 'Finds the strongest crypto category and summarizes relative market rotation.',
+  },
+  {
+    value: 'ANOMALY_DETECTOR',
+    label: 'Anomaly Detector',
+    description: 'Flags coins showing unusual price and volume behaviour from batched market data.',
+  },
+  {
+    value: 'VOLATILITY_REGIME',
+    label: 'Volatility Regime',
+    description: 'Classifies the current market environment as low, medium, or high volatility.',
+  },
+  {
+    value: 'PATTERN_MATCH',
+    label: 'Pattern Match',
+    description: 'Compares the latest crypto spikes with similar historical moves from CoinGecko history.',
+  },
 ];
 
 export const VIDEO = {

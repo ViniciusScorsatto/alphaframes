@@ -2,7 +2,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import {bundle} from '@remotion/bundler';
 import {renderMedia, selectComposition} from '@remotion/renderer';
-import type {AnyGeneratedVideoData, RenderedVideoResult} from '@/types';
+import type {RenderableVideoData, RenderedVideoResult} from '@/types';
 import {VIDEO} from '@/lib/constants';
 import {slugify} from '@/lib/utils';
 
@@ -31,13 +31,18 @@ async function getBundleLocation() {
   return bundleLocationPromise;
 }
 
-export async function renderVideos(items: AnyGeneratedVideoData[]): Promise<RenderedVideoResult[]> {
+export async function renderVideos(items: RenderableVideoData[]): Promise<RenderedVideoResult[]> {
   await fs.mkdir(OUTPUT_DIR, {recursive: true});
   const serveUrl = await getBundleLocation();
 
   return Promise.all(
     items.map(async (item) => {
-      const compositionId = item.kind === 'comparison' ? 'ComparisonAssetVideo' : 'FinancialAssetVideo';
+      const compositionId =
+        item.kind === 'comparison'
+          ? 'ComparisonAssetVideo'
+          : item.kind === 'market'
+            ? 'MarketInsightVideo'
+            : 'FinancialAssetVideo';
       const composition = await selectComposition({
         serveUrl,
         id: compositionId,

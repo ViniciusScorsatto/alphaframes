@@ -6,7 +6,19 @@ export type TemplateId =
   | 'BEST_DAY_TO_BUY'
   | 'DCA_STRATEGY'
   | 'THEN_VS_NOW'
-  | 'COMPARE_ASSETS';
+  | 'COMPARE_ASSETS'
+  | 'MARKET_SNAPSHOT'
+  | 'NARRATIVE_DETECTOR'
+  | 'ANOMALY_DETECTOR'
+  | 'VOLATILITY_REGIME'
+  | 'PATTERN_MATCH';
+
+export type MarketTemplateId =
+  | 'MARKET_SNAPSHOT'
+  | 'NARRATIVE_DETECTOR'
+  | 'ANOMALY_DETECTOR'
+  | 'VOLATILITY_REGIME'
+  | 'PATTERN_MATCH';
 
 export type LookbackWindow = 30 | 90 | 180 | 365 | 'max';
 export type DcaCadence = 'weekly' | 'biweekly' | 'monthly';
@@ -95,7 +107,26 @@ export interface ComparisonVideoData {
   comparisonTimeline: ComparisonTimelinePoint[];
 }
 
-export type AnyGeneratedVideoData = GeneratedVideoData | ComparisonVideoData;
+export interface MarketTemplateData {
+  kind: 'market';
+  asset: 'CRYPTO_MARKET';
+  assetName: 'Crypto Market';
+  template: MarketTemplateId;
+  currency: 'USD';
+  generated_at: string;
+  headline: string;
+  supporting_stats: Array<{
+    label: string;
+    value: string;
+  }>;
+  narrative_text: string;
+  confidence: number;
+  risk_label: 'low' | 'medium' | 'high';
+  data_points: Record<string, unknown>;
+}
+
+export type AnyGeneratedVideoData = GeneratedVideoData | ComparisonVideoData | MarketTemplateData;
+export type RenderableVideoData = GeneratedVideoData | ComparisonVideoData | MarketTemplateData;
 
 export interface GenerateRequestItem {
   ticker: string;

@@ -78,6 +78,25 @@ const requestSchema = z.object({
         }),
       ),
     }),
+    z.object({
+      kind: z.literal('market'),
+      asset: z.literal('CRYPTO_MARKET'),
+      assetName: z.literal('Crypto Market'),
+      template: z.enum(['MARKET_SNAPSHOT', 'NARRATIVE_DETECTOR', 'ANOMALY_DETECTOR', 'VOLATILITY_REGIME', 'PATTERN_MATCH']),
+      currency: z.literal('USD'),
+      generated_at: z.string(),
+      headline: z.string(),
+      supporting_stats: z.array(
+        z.object({
+          label: z.string(),
+          value: z.string(),
+        }),
+      ),
+      narrative_text: z.string(),
+      confidence: z.number(),
+      risk_label: z.enum(['low', 'medium', 'high']),
+      data_points: z.record(z.string(), z.unknown()),
+    }),
   ]),
 });
 

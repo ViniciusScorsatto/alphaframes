@@ -4,6 +4,7 @@ import {useEffect, useMemo, useState, useTransition} from 'react';
 import {Player} from '@remotion/player';
 import {ComparisonAssetVideo} from '@/video/comparison-asset-video';
 import {FinancialAssetVideo} from '@/video/financial-asset-video';
+import {MarketInsightVideo} from '@/video/market-insight-video';
 import {DCA_CADENCE_OPTIONS, LOOKBACK_OPTIONS, VIDEO, TEMPLATE_OPTIONS} from '@/lib/constants';
 import {Button, Input, Label, Select, Textarea} from '@/components/ui';
 import {formatCurrency, formatDisplayDate, formatPercent} from '@/lib/utils';
@@ -18,6 +19,13 @@ import type {
 } from '@/types';
 
 const HISTORY_KEY = 'financial-video-studio-history';
+const MARKET_TEMPLATES: TemplateId[] = [
+  'MARKET_SNAPSHOT',
+  'NARRATIVE_DETECTOR',
+  'ANOMALY_DETECTOR',
+  'VOLATILITY_REGIME',
+  'PATTERN_MATCH',
+];
 
 function parseTickers(value: string, assetType: AssetType) {
   return value
@@ -62,12 +70,41 @@ export function DashboardShell() {
   const selectedItem = generatedItems[selectedIndex] ?? null;
   const tickerCount = useMemo(() => parseTickers(tickersInput, assetType).length, [tickersInput, assetType]);
   const isComparisonTemplate = template === 'COMPARE_ASSETS';
+  const isMarketTemplate = MARKET_TEMPLATES.includes(template);
   const supportsLookback = ['BEST_DAY_TO_BUY', 'DCA_STRATEGY', 'THEN_VS_NOW', 'COMPARE_ASSETS'].includes(template);
   const isDcaTemplate = template === 'DCA_STRATEGY';
 
   const handleGenerate = () => {
     setError(null);
     setIdeas([]);
+    if (isMarketTemplate) {
+      startGenerating(async () => {
+        try {
+          const response = await fetch('/api/generate', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+              tickers: [],
+              template,
+              investment,
+            }),
+          });
+          const payload = (await response.json()) as GenerateResponsePayload & {error?: string};
+
+          if (!response.ok) {
+            throw new Error(payload.error ?? 'Failed to generate market insight.');
+          }
+
+          setGeneratedItems(payload.items);
+          setSelectedIndex(0);
+          setHistory((current) => [...payload.items, ...current].slice(0, 24));
+        } catch (requestError) {
+          setError(requestError instanceof Error ? requestError.message : 'Failed to generate market insight.');
+        }
+      });
+      return;
+    }
+
     if (isComparisonTemplate) {
       if (!comparisonPrimaryTicker.trim() || !comparisonSecondaryTicker.trim()) {
         setError('Enter both assets to generate a comparison video.');
@@ -207,8 +244,12 @@ export function DashboardShell() {
 
           <div className="space-y-5">
             <div>
-              <Label>{isComparisonTemplate ? 'Assets To Compare' : 'Tickers'}</Label>
-              {isComparisonTemplate ? (
+              <Label>{isMarketTemplate ? 'Data Source' : isComparisonTemplate ? 'Assets To Compare' : 'Tickers'}</Label>
+              {isMarketTemplate ? (
+                <div className="rounded-3xl border border-white/10 bg-white/5 px-4 py-4 text-sm leading-6 text-zinc-300">
+                  CoinGecko market-wide analysis. This template uses batched crypto market data only and does not require ticker input.
+                </div>
+              ) : isComparisonTemplate ? (
                 <div className="grid gap-4">
                   <div className="grid gap-4 sm:grid-cols-[1fr_140px]">
                     <Input value={comparisonPrimaryTicker} onChange={(event) => setComparisonPrimaryTicker(event.target.value)} placeholder="BTC" />
@@ -240,7 +281,7 @@ export function DashboardShell() {
             </div>
 
             <div className="grid gap-5 sm:grid-cols-2">
-              {!isComparisonTemplate ? (
+              {!isComparisonTemplate && !isMarketTemplate ? (
                 <div>
                   <Label>Asset Type</Label>
                   <Select value={assetType} onChange={(event) => setAssetType(event.target.value as AssetType)}>
@@ -257,18 +298,20 @@ export function DashboardShell() {
                   </div>
                 </div>
               )}
-              <div>
-                <Label>Investment</Label>
-                <Input
-                  type="number"
-                  min={1}
-                  value={investment}
-                  onChange={(event) => setInvestment(Number(event.target.value))}
-                />
-              </div>
+              {!isMarketTemplate ? (
+                <div>
+                  <Label>Investment</Label>
+                  <Input
+                    type="number"
+                    min={1}
+                    value={investment}
+                    onChange={(event) => setInvestment(Number(event.target.value))}
+                  />
+                </div>
+              ) : null}
             </div>
 
-            {supportsLookback ? (
+            {supportsLookback && !isMarketTemplate ? (
               <div>
                 <Label>Graph Range</Label>
                 <Select
@@ -291,7 +334,7 @@ export function DashboardShell() {
               </div>
             ) : null}
 
-            {isDcaTemplate ? (
+            {isDcaTemplate && !isMarketTemplate ? (
               <div>
                 <Label>DCA Cadence</Label>
                 <Select value={dcaCadence} onChange={(event) => setDcaCadence(event.target.value as DcaCadence)}>
@@ -331,7 +374,7 @@ export function DashboardShell() {
               <Button
                 variant="secondary"
                 onClick={handleSuggestIdeas}
-                disabled={isSuggesting || !selectedItem}
+                disabled={isSuggesting || !selectedItem || selectedItem.kind === 'market'}
               >
                 {isSuggesting ? 'Thinking...' : 'Suggest Content Ideas'}
               </Button>
@@ -433,6 +476,22 @@ export function DashboardShell() {
                   volumePersistenceKey="alphaframes-preview-volume"
                   style={{width: '100%', aspectRatio: '9 / 16'}}
                 />
+              ) : selectedItem && selectedItem.kind === 'market' ? (
+                <Player
+                  component={MarketInsightVideo}
+                  inputProps={{data: selectedItem}}
+                  durationInFrames={VIDEO.durationInFrames}
+                  compositionWidth={VIDEO.width}
+                  compositionHeight={VIDEO.height}
+                  fps={VIDEO.fps}
+                  controls
+                  loop
+                  showVolumeControls
+                  initiallyMuted={false}
+                  initiallyShowControls
+                  volumePersistenceKey="alphaframes-preview-volume"
+                  style={{width: '100%', aspectRatio: '9 / 16'}}
+                />
               ) : (
                 <div className="flex aspect-[9/16] items-center justify-center text-sm text-zinc-500">
                   Generate data to preview the vertical video.
@@ -456,13 +515,21 @@ export function DashboardShell() {
                   <div className="rounded-3xl border border-white/10 bg-white/5 p-4">
                     <div className="text-sm text-zinc-400">Transformation</div>
                     <div className="mt-2 text-3xl font-bold tracking-[-0.05em] text-white">
-                      {selectedItem.kind === 'comparison'
+                      {selectedItem.kind === 'market'
+                        ? selectedItem.headline
+                        : selectedItem.kind === 'comparison'
                         ? `${selectedItem.primaryAsset.ticker} ${formatCurrency(selectedItem.primaryAsset.valueToday, selectedItem.currency)} vs ${selectedItem.secondaryAsset.ticker} ${formatCurrency(selectedItem.secondaryAsset.valueToday, selectedItem.currency)}`
                         : `${formatCurrency(selectedItem.investment, selectedItem.currency)} -> ${formatCurrency(selectedItem.valueToday, selectedItem.currency)}`}
                     </div>
                   </div>
                   <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
-                    {selectedItem.kind === 'comparison' ? (
+                    {selectedItem.kind === 'market' ? (
+                      <>
+                        <StatCard label="Confidence" value={`${Math.round(selectedItem.confidence * 100)}%`} />
+                        <StatCard label="Risk" value={selectedItem.risk_label.toUpperCase()} gain={selectedItem.risk_label === 'low' ? true : selectedItem.risk_label === 'high' ? false : undefined} />
+                        <StatCard label={selectedItem.supporting_stats[0]?.label ?? 'Supporting Stat'} value={selectedItem.supporting_stats[0]?.value ?? 'N/A'} />
+                      </>
+                    ) : selectedItem.kind === 'comparison' ? (
                       <>
                         <StatCard label={`${selectedItem.primaryAsset.ticker} Return`} value={formatPercent(selectedItem.primaryAsset.return)} gain={selectedItem.primaryAsset.return >= 0} />
                         <StatCard label={`${selectedItem.secondaryAsset.ticker} Return`} value={formatPercent(selectedItem.secondaryAsset.return)} gain={selectedItem.secondaryAsset.return >= 0} />
@@ -475,10 +542,14 @@ export function DashboardShell() {
                         <StatCard label="Current Price" value={formatCurrency(selectedItem.currentPrice, selectedItem.currency)} />
                       </>
                     )}
-                    <StatCard
-                      label="Date Range"
-                      value={`${formatDisplayDate(selectedItem.startDate)} -> ${formatDisplayDate(selectedItem.endDate)}`}
-                    />
+                    {selectedItem.kind === 'market' ? (
+                      <StatCard label="Generated" value={formatDisplayDate(selectedItem.generated_at)} />
+                    ) : (
+                      <StatCard
+                        label="Date Range"
+                        value={`${formatDisplayDate(selectedItem.startDate)} -> ${formatDisplayDate(selectedItem.endDate)}`}
+                      />
+                    )}
                   </div>
                 </div>
               ) : (
@@ -502,11 +573,17 @@ export function DashboardShell() {
                   >
                     <div className="text-xs uppercase tracking-[0.2em] text-zinc-500">{item.template}</div>
                     <div className="mt-2 text-xl font-semibold text-white">{item.assetName}</div>
-                    <div className={`mt-3 text-sm ${item.kind === 'comparison' ? 'text-sky-300' : item.return >= 0 ? 'text-emerald-300' : 'text-red-300'}`}>
-                      {item.kind === 'comparison' ? `${item.winnerTicker} wins ${formatPercent(item.deltaReturn)}` : formatPercent(item.return)}
+                    <div className={`mt-3 text-sm ${item.kind === 'market' ? 'text-zinc-300' : item.kind === 'comparison' ? 'text-sky-300' : item.return >= 0 ? 'text-emerald-300' : 'text-red-300'}`}>
+                      {item.kind === 'market'
+                        ? item.headline
+                        : item.kind === 'comparison'
+                          ? `${item.winnerTicker} wins ${formatPercent(item.deltaReturn)}`
+                          : formatPercent(item.return)}
                     </div>
                     <div className="mt-1 text-xs text-zinc-500">
-                      {formatDisplayDate(item.startDate)} {'->'} {formatDisplayDate(item.endDate)}
+                      {item.kind === 'market'
+                        ? `Generated ${formatDisplayDate(item.generated_at)}`
+                        : `${formatDisplayDate(item.startDate)} -> ${formatDisplayDate(item.endDate)}`}
                     </div>
                   </button>
                 ))

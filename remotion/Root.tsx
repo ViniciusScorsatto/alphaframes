@@ -1,6 +1,7 @@
 import {Composition} from 'remotion';
 import {ComparisonAssetVideo} from '../video/comparison-asset-video';
-import type {GeneratedVideoData} from '../types';
+import {MarketInsightVideo} from '../video/market-insight-video';
+import type {GeneratedVideoData, MarketTemplateData} from '../types';
 import {VIDEO} from '../lib/constants';
 import {FinancialAssetVideo} from '../video/financial-asset-video';
 
@@ -29,6 +30,29 @@ const defaultProps: GeneratedVideoData = {
     {date: '2026-03-01', timestamp: 5, price: 47000},
   ],
   insights: ['Bitcoin turned $1,000 into $1,119 over the last month.'],
+};
+
+const defaultMarketProps: MarketTemplateData = {
+  kind: 'market',
+  asset: 'CRYPTO_MARKET',
+  assetName: 'Crypto Market',
+  template: 'MARKET_SNAPSHOT',
+  currency: 'USD',
+  generated_at: '2026-04-19',
+  headline: 'Market is up +2.45% in the last 24h',
+  supporting_stats: [
+    {label: 'Top 50 average', value: '+2.45%'},
+    {label: 'BTC vs alt proxy', value: '+1.20% vs +2.88%'},
+    {label: 'Top category', value: 'AI Tokens +5.30%'},
+  ],
+  narrative_text: 'Breadth is leaning positive and capital appears to be rotating into the strongest beta pockets of the market.',
+  confidence: 0.74,
+  risk_label: 'medium',
+  data_points: {
+    market_average_24h: 2.45,
+    btc_change_24h: 1.2,
+    alt_average_24h: 2.88,
+  },
 };
 
 export const RemotionRoot = () => {
@@ -95,6 +119,15 @@ export const RemotionRoot = () => {
             ],
           },
         }}
+      />
+      <Composition
+        id="MarketInsightVideo"
+        component={MarketInsightVideo}
+        durationInFrames={VIDEO.durationInFrames}
+        fps={VIDEO.fps}
+        width={VIDEO.width}
+        height={VIDEO.height}
+        defaultProps={{data: defaultMarketProps}}
       />
     </>
   );
