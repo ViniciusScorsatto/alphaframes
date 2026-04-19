@@ -56,6 +56,21 @@ export const TEMPLATE_OPTIONS: {label: string; value: TemplateId; description: s
     label: 'Pattern Match',
     description: 'Compares the latest crypto spikes with similar historical moves from CoinGecko history.',
   },
+  {
+    value: 'SILENT_ACCUMULATION',
+    label: 'Silent Accumulation',
+    description: 'Finds crypto names where volume rises while price stays unusually flat.',
+  },
+  {
+    value: 'EXHAUSTION_MOVE',
+    label: 'Exhaustion Move',
+    description: 'Flags crypto names where a strong 7-day run is stalling into a flat 24-hour tape.',
+  },
+  {
+    value: 'DIVERGENCE_DETECTOR',
+    label: 'Divergence Detector',
+    description: 'Highlights crypto names moving far away from the broader market average.',
+  },
 ];
 
 export const VIDEO = {

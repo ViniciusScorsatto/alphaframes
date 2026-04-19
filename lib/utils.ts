@@ -62,3 +62,7 @@ export function clamp(num: number, min: number, max: number) {
 export function slugify(value: string) {
   return value.toLowerCase().replace(/[^a-z0-9]+/g, '-');
 }
+
+export function formatAssetIdentity(ticker: string, name: string) {
+  return ticker.toUpperCase() === name.toUpperCase() ? ticker : `${ticker} (${name})`;
+}

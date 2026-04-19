@@ -10,6 +10,7 @@ interface CoinGeckoMarketCoin {
   total_volume: number;
   price_change_percentage_24h_in_currency: number | null;
   price_change_percentage_7d_in_currency: number | null;
+  last_updated: string | null;
 }
 
 interface CoinGeckoCategory {
@@ -17,7 +18,6 @@ interface CoinGeckoCategory {
   name: string;
   market_cap: number;
   market_cap_change_24h: number | null;
-  content?: string;
   top_3_coins?: string[];
 }
 
@@ -35,6 +35,8 @@ export interface MarketCoinSnapshot {
   change24h: number;
   change7d: number;
   volumeToMarketCapRatio: number;
+  lastUpdated: string;
+  lastUpdatedTimestamp: number;
 }
 
 export interface MarketCategorySnapshot {
@@ -45,9 +47,24 @@ export interface MarketCategorySnapshot {
   topCoins: string[];
 }
 
+const STALENESS_WINDOW_MS = 2 * 60 * 60 * 1000;
+
+function isFreshEnough(lastUpdated: string | null) {
+  if (!lastUpdated) {
+    return false;
+  }
+
+  const timestamp = new Date(lastUpdated).getTime();
+  if (!Number.isFinite(timestamp)) {
+    return false;
+  }
+
+  return Date.now() - timestamp <= STALENESS_WINDOW_MS;
+}
+
 async function fetchTopCoinsMarketDataRaw() {
   const response = await fetch(
-    'https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=50&page=1&sparkline=false&price_change_percentage=24h,7d',
+    'https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=100&page=1&sparkline=false&price_change_percentage=24h,7d',
     {
       next: {revalidate: 60 * 30},
     },
@@ -59,17 +76,25 @@ async function fetchTopCoinsMarketDataRaw() {
 
   const payload = (await response.json()) as CoinGeckoMarketCoin[];
 
-  return payload.map((coin) => ({
-    id: coin.id,
-    ticker: coin.symbol.toUpperCase(),
-    name: coin.name,
-    currentPrice: coin.current_price,
-    marketCap: coin.market_cap,
-    totalVolume: coin.total_volume,
-    change24h: coin.price_change_percentage_24h_in_currency ?? 0,
-    change7d: coin.price_change_percentage_7d_in_currency ?? 0,
-    volumeToMarketCapRatio: coin.market_cap > 0 ? coin.total_volume / coin.market_cap : 0,
-  })) satisfies MarketCoinSnapshot[];
+  return payload
+    .filter((coin) => isFreshEnough(coin.last_updated))
+    .map((coin) => {
+      const lastUpdatedTimestamp = new Date(coin.last_updated as string).getTime();
+
+      return {
+        id: coin.id,
+        ticker: coin.symbol.toUpperCase(),
+        name: coin.name,
+        currentPrice: coin.current_price,
+        marketCap: coin.market_cap,
+        totalVolume: coin.total_volume,
+        change24h: coin.price_change_percentage_24h_in_currency ?? 0,
+        change7d: coin.price_change_percentage_7d_in_currency ?? 0,
+        volumeToMarketCapRatio: coin.market_cap > 0 ? coin.total_volume / coin.market_cap : 0,
+        lastUpdated: coin.last_updated as string,
+        lastUpdatedTimestamp,
+      };
+    }) satisfies MarketCoinSnapshot[];
 }
 
 async function fetchCategorySnapshotsRaw() {
@@ -94,7 +119,7 @@ async function fetchCategorySnapshotsRaw() {
     .filter((category) => category.marketCap > 0) satisfies MarketCategorySnapshot[];
 }
 
-async function fetchCoinMarketChartRaw(coinId: string, days: 90) {
+async function fetchCoinMarketChartRaw(coinId: string, days = 90) {
   const response = await fetch(
     `https://api.coingecko.com/api/v3/coins/${coinId}/market_chart?vs_currency=usd&days=${days}&interval=daily`,
     {
@@ -115,6 +140,6 @@ async function fetchCoinMarketChartRaw(coinId: string, days: 90) {
   }));
 }
 
-export const fetchTopCoinsMarketData = cacheMarketData('coingecko-top-50-market', fetchTopCoinsMarketDataRaw);
+export const fetchTopCoinsMarketData = cacheMarketData('coingecko-top-100-market', fetchTopCoinsMarketDataRaw);
 export const fetchCategorySnapshots = cacheMarketData('coingecko-category-snapshots', fetchCategorySnapshotsRaw);
 export const fetchCoinMarketChart = cacheMarketData('coingecko-market-chart', fetchCoinMarketChartRaw);

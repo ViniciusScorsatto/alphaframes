@@ -1,7 +1,79 @@
 import {fetchCategorySnapshots, fetchCoinMarketChart, fetchTopCoinsMarketData} from '@/data/coingecko-market';
-import {clamp, formatCurrency, formatPercent, toIsoDate} from '@/lib/utils';
 import type {MarketCoinSnapshot} from '@/data/coingecko-market';
+import {clamp, formatPercent, toIsoDate} from '@/lib/utils';
 import type {MarketTemplateData, MarketTemplateId} from '@/types';
+
+interface AnomalySignalBase {
+  headline: string;
+  narrative: string;
+  confidence: number;
+  risk_label: 'low' | 'medium' | 'high';
+  data_points: Record<string, unknown>;
+  coin?: {
+    ticker: string;
+    name: string;
+  };
+}
+
+interface SilentAccumulationSignal extends AnomalySignalBase {
+  type: 'silent_accumulation';
+}
+
+interface ExhaustionMoveSignal extends AnomalySignalBase {
+  type: 'exhaustion_move';
+}
+
+interface DivergenceSignal extends AnomalySignalBase {
+  type: 'divergence';
+}
+
+type AnomalySignal = SilentAccumulationSignal | ExhaustionMoveSignal | DivergenceSignal;
+
+const STABLECOIN_IDS = new Set([
+  'tether',
+  'usd-coin',
+  'dai',
+  'first-digital-usd',
+  'ethena-usde',
+  'usds',
+  'paypal-usd',
+  'true-usd',
+  'usdd',
+  'pax-dollar',
+  'binance-usd',
+  'gemini-dollar',
+  'frax',
+  'gho',
+  'liquity-usd',
+  'ripple-usd',
+  'stasis-eurs',
+  'euro-coin',
+  'mountain-protocol-usdm',
+  'world-liberty-financial-usd',
+]);
+
+const STABLECOIN_TICKERS = new Set([
+  'USDT',
+  'USDC',
+  'DAI',
+  'FDUSD',
+  'USDE',
+  'USDS',
+  'PYUSD',
+  'TUSD',
+  'USDD',
+  'USDP',
+  'BUSD',
+  'GUSD',
+  'FRAX',
+  'GHO',
+  'LUSD',
+  'RLUSD',
+  'EURS',
+  'EURC',
+  'USDM',
+  'USD1',
+]);
 
 function average(values: number[]) {
   if (!values.length) {
@@ -33,19 +105,35 @@ function toRiskLabel(value: number, lowThreshold: number, highThreshold: number)
   return 'low';
 }
 
-function createMarketResult(input: Omit<MarketTemplateData, 'kind' | 'asset' | 'assetName' | 'currency' | 'generated_at'>): MarketTemplateData {
+function isStablecoinLike(coin: MarketCoinSnapshot) {
+  const lowerName = coin.name.toLowerCase();
+  const closeToFiatPeg = coin.currentPrice >= 0.85 && coin.currentPrice <= 1.15;
+
+  return (
+    STABLECOIN_IDS.has(coin.id) ||
+    STABLECOIN_TICKERS.has(coin.ticker) ||
+    (closeToFiatPeg &&
+      (/stablecoin|dollar/.test(lowerName) || /\b(usd|eur|gbp)\b/.test(lowerName)))
+  );
+}
+
+function formatCoinHeadlineLabel(coin: Pick<MarketCoinSnapshot, 'ticker' | 'name'>) {
+  return coin.name.toUpperCase() === coin.ticker ? coin.ticker : `${coin.ticker} (${coin.name})`;
+}
+
+function createMarketResult(
+  input: Omit<MarketTemplateData, 'kind' | 'currency' | 'generated_at'>,
+): MarketTemplateData {
   return {
     kind: 'market',
-    asset: 'CRYPTO_MARKET',
-    assetName: 'Crypto Market',
     currency: 'USD',
     generated_at: toIsoDate(Date.now()),
     ...input,
   };
 }
 
-async function getSharedMarketContext() {
-  const [coins, categories] = await Promise.all([fetchTopCoinsMarketData(), fetchCategorySnapshots()]);
+async function getMarketBreadthContext() {
+  const coins = await fetchTopCoinsMarketData();
   const marketAverage24h = average(coins.map((coin) => coin.change24h));
   const btc = coins.find((coin) => coin.ticker === 'BTC');
   const alts = coins.filter((coin) => coin.ticker !== 'BTC');
@@ -54,11 +142,18 @@ async function getSharedMarketContext() {
 
   return {
     coins,
-    categories,
     marketAverage24h,
     btcChange24h: btc?.change24h ?? 0,
     altAverage24h,
     dispersion24h,
+  };
+}
+
+async function getMarketCategoryContext() {
+  const [breadth, categories] = await Promise.all([getMarketBreadthContext(), fetchCategorySnapshots()]);
+  return {
+    ...breadth,
+    categories,
   };
 }
 
@@ -76,16 +171,22 @@ function getMostAnomalousCoin(coins: MarketCoinSnapshot[]) {
 }
 
 async function buildMarketSnapshot() {
-  const {coins, categories, marketAverage24h, btcChange24h, altAverage24h, dispersion24h} = await getSharedMarketContext();
+  const {coins, categories, marketAverage24h, btcChange24h, altAverage24h, dispersion24h} =
+    await getMarketCategoryContext();
   const topCategory = [...categories].sort((a, b) => b.change24h - a.change24h)[0];
   const direction = marketAverage24h >= 0 ? 'up' : 'down';
-  const breadth = coins.filter((coin) => Math.sign(coin.change24h) === Math.sign(marketAverage24h) || coin.change24h === 0).length / coins.length;
+  const breadth =
+    coins.filter(
+      (coin) => Math.sign(coin.change24h) === Math.sign(marketAverage24h) || coin.change24h === 0,
+    ).length / coins.length;
 
   return createMarketResult({
+    asset: 'CRYPTO_MARKET',
+    assetName: 'Crypto Market',
     template: 'MARKET_SNAPSHOT',
     headline: `Crypto market is ${direction} ${formatPercent(Math.abs(marketAverage24h)).replace('+', '')} in the last 24h`,
     supporting_stats: [
-      {label: 'Top 50 average', value: formatPercent(marketAverage24h)},
+      {label: 'Top 50 average', value: formatPercent(average(coins.slice(0, 50).map((coin) => coin.change24h)))},
       {label: 'BTC vs alt proxy', value: `${formatPercent(btcChange24h)} vs ${formatPercent(altAverage24h)}`},
       {label: 'Top category', value: `${topCategory?.name ?? 'N/A'} ${formatPercent(topCategory?.change24h ?? 0)}`},
     ],
@@ -102,19 +203,22 @@ async function buildMarketSnapshot() {
       breadth_ratio: Number(breadth.toFixed(2)),
       top_category: topCategory?.name ?? null,
       top_category_change_24h: Number((topCategory?.change24h ?? 0).toFixed(2)),
-      top_50_count: coins.length,
+      top_50_count: Math.min(50, coins.length),
+      stale_valid_count: coins.length,
     },
   });
 }
 
 async function buildNarrativeDetector() {
-  const {categories, marketAverage24h, dispersion24h} = await getSharedMarketContext();
+  const {categories, marketAverage24h, dispersion24h} = await getMarketCategoryContext();
   const ranked = [...categories].sort((a, b) => b.change24h - a.change24h);
   const strongest = ranked[0];
   const relativeStrength = (strongest?.change24h ?? 0) - marketAverage24h;
   const confidence = clamp(0.4 + Math.min(Math.abs(relativeStrength) / 12, 0.45), 0, 1);
 
   return createMarketResult({
+    asset: 'CRYPTO_MARKET',
+    assetName: 'Crypto Market',
     template: 'NARRATIVE_DETECTOR',
     headline: `${strongest?.name ?? 'Leading'} category outperforming the crypto market`,
     supporting_stats: [
@@ -140,7 +244,7 @@ async function buildNarrativeDetector() {
 }
 
 async function buildAnomalyDetector() {
-  const {coins, dispersion24h} = await getSharedMarketContext();
+  const {coins, dispersion24h} = await getMarketBreadthContext();
   const anomaly = getMostAnomalousCoin(coins);
   const topMover = getTopMover(coins);
   const target = anomaly?.coin ?? topMover;
@@ -148,16 +252,25 @@ async function buildAnomalyDetector() {
   const confidence = clamp(0.42 + Math.min(score / 35, 0.5), 0, 1);
 
   return createMarketResult({
+    asset: target?.ticker ?? 'CRYPTO_MARKET',
+    assetName: target?.name ? `${target.name} / Crypto Market` : 'Crypto Market',
     template: 'ANOMALY_DETECTOR',
     headline: `Unusual crypto market activity detected in ${target?.ticker ?? 'the market leader'}`,
     supporting_stats: [
       {label: '24h move', value: formatPercent(target?.change24h ?? 0)},
       {label: '7d move', value: formatPercent(target?.change7d ?? 0)},
-      {label: 'Volume / market cap', value: `${((target?.volumeToMarketCapRatio ?? 0) * 100).toFixed(2)}%`},
+      {
+        label: 'Volume / market cap',
+        value: `${((target?.volumeToMarketCapRatio ?? 0) * 100).toFixed(2)}%`,
+      },
     ],
     narrative_text: `${target?.name ?? 'This asset'} is showing price and volume expansion together inside the crypto market, which often marks a momentum-heavy phase rather than a quiet rotation.`,
     confidence: Number(confidence.toFixed(2)),
-    risk_label: toRiskLabel(Math.abs(target?.change24h ?? 0) + (target?.volumeToMarketCapRatio ?? 0) * 100 + dispersion24h, 12, 20),
+    risk_label: toRiskLabel(
+      Math.abs(target?.change24h ?? 0) + (target?.volumeToMarketCapRatio ?? 0) * 100 + dispersion24h,
+      12,
+      20,
+    ),
     data_points: {
       coin: target?.ticker ?? null,
       change_24h: Number((target?.change24h ?? 0).toFixed(2)),
@@ -171,13 +284,15 @@ async function buildAnomalyDetector() {
 }
 
 async function buildVolatilityRegime() {
-  const {coins, marketAverage24h, dispersion24h} = await getSharedMarketContext();
+  const {coins, marketAverage24h, dispersion24h} = await getMarketBreadthContext();
   const absoluteAverageMove = average(coins.map((coin) => Math.abs(coin.change24h)));
   const volatilityLabel = toRiskLabel(dispersion24h, 2.5, 5);
   const phase = volatilityLabel === 'high' ? 'high' : volatilityLabel === 'low' ? 'low' : 'medium';
   const confidence = clamp(0.5 + Math.min(Math.abs(dispersion24h - 3.5) / 4, 0.4), 0, 1);
 
   return createMarketResult({
+    asset: 'CRYPTO_MARKET',
+    assetName: 'Crypto Market',
     template: 'VOLATILITY_REGIME',
     headline: `Crypto market entering ${phase} volatility phase`,
     supporting_stats: [
@@ -243,8 +358,11 @@ async function buildPatternMatch() {
     };
   });
 
-  const bestMatch =
-    [...patternResults].sort((a, b) => b.cases.length - a.cases.length || Math.abs(b.averageForward7d) - Math.abs(a.averageForward7d))[0];
+  const bestMatch = [...patternResults].sort(
+    (a, b) =>
+      b.cases.length - a.cases.length ||
+      Math.abs(b.averageForward7d) - Math.abs(a.averageForward7d),
+  )[0];
   const similarCases = bestMatch?.cases.length ?? 0;
   const averageOutcome = bestMatch?.averageForward7d ?? 0;
   const confidence = clamp(0.35 + Math.min(similarCases / 10, 0.55), 0, 1);
@@ -254,6 +372,8 @@ async function buildPatternMatch() {
       : `Across ${similarCases} similar spikes, the average 7-day follow-through faded by ${formatPercent(Math.abs(averageOutcome)).replace('+', '')}.`;
 
   return createMarketResult({
+    asset: bestMatch?.coin.ticker ?? 'CRYPTO_MARKET',
+    assetName: bestMatch?.coin.name ? `${bestMatch.coin.name} / Crypto Market` : 'Crypto Market',
     template: 'PATTERN_MATCH',
     headline: 'Current crypto market move resembles past patterns',
     supporting_stats: [
@@ -283,19 +403,260 @@ async function buildPatternMatch() {
   });
 }
 
-export async function generateMarketTemplateData(template: MarketTemplateId): Promise<MarketTemplateData> {
+function createSilentAccumulationSignals(coins: MarketCoinSnapshot[]): SilentAccumulationSignal[] {
+  const filtered = coins.filter(
+    (coin) =>
+      !isStablecoinLike(coin) &&
+      coin.totalVolume > 1_000_000 &&
+      Math.abs(coin.change24h) <= 2 &&
+      coin.marketCap > 0,
+  );
+  const avgRatio = average(filtered.map((coin) => coin.volumeToMarketCapRatio));
+
+  return filtered
+    .filter((coin) => coin.volumeToMarketCapRatio > avgRatio * 1.5)
+    .sort((a, b) => b.volumeToMarketCapRatio - a.volumeToMarketCapRatio)
+    .slice(0, 2)
+    .map((coin) => {
+      const signalStrength = coin.volumeToMarketCapRatio / Math.max(avgRatio, 0.000001);
+      const confidence = clamp(0.6 + Math.min((signalStrength - 1.5) * 0.08, 0.15), 0.6, 0.75);
+
+      return {
+        type: 'silent_accumulation',
+        headline: `Unusual accumulation detected in ${formatCoinHeadlineLabel(coin)}`,
+        narrative:
+          'Volume is increasing while price remains stable. This pattern has historically appeared before larger directional moves.',
+        confidence: Number(confidence.toFixed(2)),
+        risk_label: 'medium',
+        coin: {
+          ticker: coin.ticker,
+          name: coin.name,
+        },
+        data_points: {
+          coin_id: coin.id,
+          coin_ticker: coin.ticker,
+          coin_name: coin.name,
+          price_change_24h: Number(coin.change24h.toFixed(2)),
+          volume_ratio: Number(coin.volumeToMarketCapRatio.toFixed(4)),
+          volume_usd: Math.round(coin.totalVolume),
+          total_volume: Math.round(coin.totalVolume),
+          market_cap: Math.round(coin.marketCap),
+          signal_value: Number(coin.volumeToMarketCapRatio.toFixed(4)),
+          signal_threshold: Number((avgRatio * 1.5).toFixed(4)),
+        },
+      };
+    });
+}
+
+function createExhaustionMoveSignals(coins: MarketCoinSnapshot[]): ExhaustionMoveSignal[] {
+  const anomalyCoins = coins.filter((coin) => !isStablecoinLike(coin));
+  const averageVolume = average(anomalyCoins.map((coin) => coin.totalVolume));
+
+  return anomalyCoins
+    .filter((coin) => coin.change7d >= 20 && Math.abs(coin.change24h) <= 2)
+    .map((coin) => {
+      const volumePenalty =
+        coin.totalVolume > averageVolume * 1.5
+          ? Math.min(((coin.totalVolume / Math.max(averageVolume, 1)) - 1.5) * 4, 8)
+          : 0;
+
+      return {
+        coin,
+        score: coin.change7d - volumePenalty,
+      };
+    })
+    .sort((a, b) => b.score - a.score || b.coin.change7d - a.coin.change7d)
+    .slice(0, 2)
+    .map(({coin, score}) => {
+      const confidence = clamp(0.65 + Math.min((score - 20) / 80, 0.15), 0.65, 0.8);
+
+      return {
+        type: 'exhaustion_move',
+        headline: `Momentum slowing after strong move in ${formatCoinHeadlineLabel(coin)}`,
+        narrative:
+          'After a strong upward move, short-term momentum is weakening. Similar patterns often transition into consolidation or pullbacks.',
+        confidence: Number(confidence.toFixed(2)),
+        risk_label: 'high',
+        coin: {
+          ticker: coin.ticker,
+          name: coin.name,
+        },
+        data_points: {
+          coin_id: coin.id,
+          coin_ticker: coin.ticker,
+          coin_name: coin.name,
+          price_change_7d: Number(coin.change7d.toFixed(2)),
+          price_change_24h: Number(coin.change24h.toFixed(2)),
+          total_volume: Math.round(coin.totalVolume),
+          market_cap: Math.round(coin.marketCap),
+          signal_value: Number(coin.change7d.toFixed(2)),
+          signal_threshold: 20,
+        },
+      };
+    });
+}
+
+function createDivergenceSignals(coins: MarketCoinSnapshot[]): DivergenceSignal[] {
+  const anomalyCoins = coins.filter((coin) => !isStablecoinLike(coin));
+  const top50 = anomalyCoins.slice(0, 50);
+  const top50Sum = top50.reduce((sum, coin) => sum + coin.change24h, 0);
+
+  return anomalyCoins
+    .map((coin) => {
+      const isInTop50 = top50.some((entry) => entry.id === coin.id);
+      const divisor = isInTop50 ? Math.max(top50.length - 1, 1) : Math.max(top50.length, 1);
+      const baseline = isInTop50 ? (top50Sum - coin.change24h) / divisor : top50Sum / divisor;
+      const divergence = coin.change24h - baseline;
+
+      return {
+        coin,
+        baseline,
+        divergence,
+      };
+    })
+    .filter((entry) => Math.abs(entry.divergence) >= 8)
+    .sort((a, b) => Math.abs(b.divergence) - Math.abs(a.divergence))
+    .slice(0, 2)
+    .map(({coin, baseline, divergence}) => {
+      const confidence = clamp(0.6 + Math.min((Math.abs(divergence) - 8) / 32, 0.15), 0.6, 0.75);
+
+      return {
+        type: 'divergence',
+        headline: `${formatCoinHeadlineLabel(coin)} diverging from broader market`,
+        narrative:
+          'This asset is moving significantly differently from the market average, indicating potential leadership or instability.',
+        confidence: Number(confidence.toFixed(2)),
+        risk_label: 'medium',
+        coin: {
+          ticker: coin.ticker,
+          name: coin.name,
+        },
+        data_points: {
+          coin_id: coin.id,
+          coin_ticker: coin.ticker,
+          coin_name: coin.name,
+          coin_change_24h: Number(coin.change24h.toFixed(2)),
+          market_avg_24h: Number(baseline.toFixed(2)),
+          divergence: Number(divergence.toFixed(2)),
+          total_volume: Math.round(coin.totalVolume),
+          market_cap: Math.round(coin.marketCap),
+          signal_value: Number(Math.abs(divergence).toFixed(2)),
+          signal_threshold: 8,
+        },
+      };
+    });
+}
+
+export async function generateAnomalySignals() {
+  const coins = await fetchTopCoinsMarketData();
+
+  return {
+    videos: [
+      ...createSilentAccumulationSignals(coins),
+      ...createExhaustionMoveSignals(coins),
+      ...createDivergenceSignals(coins),
+    ] satisfies AnomalySignal[],
+  };
+}
+
+function mapSignalToMarketItem(
+  template: 'SILENT_ACCUMULATION' | 'EXHAUSTION_MOVE' | 'DIVERGENCE_DETECTOR',
+  signal: AnomalySignal,
+): MarketTemplateData {
+  const supportingStats =
+    template === 'SILENT_ACCUMULATION'
+      ? [
+          {label: '24h change', value: formatPercent(Number(signal.data_points.price_change_24h ?? 0))},
+          {label: 'Volume ratio', value: String(signal.data_points.volume_ratio ?? '0')},
+          {label: '24h volume', value: `$${Number(signal.data_points.volume_usd ?? 0).toLocaleString('en-US')}`},
+        ]
+      : template === 'EXHAUSTION_MOVE'
+        ? [
+            {label: '7d move', value: formatPercent(Number(signal.data_points.price_change_7d ?? 0))},
+            {label: '24h move', value: formatPercent(Number(signal.data_points.price_change_24h ?? 0))},
+          ]
+        : [
+            {label: 'Coin move', value: formatPercent(Number(signal.data_points.coin_change_24h ?? 0))},
+            {label: 'Market average', value: formatPercent(Number(signal.data_points.market_avg_24h ?? 0))},
+            {label: 'Divergence', value: formatPercent(Number(signal.data_points.divergence ?? 0))},
+          ];
+
+  return createMarketResult({
+    asset: signal.coin?.ticker ?? 'CRYPTO_MARKET',
+    assetName: signal.coin?.name ? `${signal.coin.name} / Crypto Market` : 'Crypto Market',
+    template,
+    headline: signal.headline,
+    supporting_stats: supportingStats,
+    narrative_text: signal.narrative,
+    confidence: signal.confidence,
+    risk_label: signal.risk_label,
+    data_points: signal.data_points,
+    signal_metadata: signal.coin
+      ? {
+          type: signal.type,
+          coinId:
+            signal.type === 'silent_accumulation' || signal.type === 'exhaustion_move' || signal.type === 'divergence'
+              ? String(signal.data_points.coin_id ?? '')
+              : '',
+          coinTicker: signal.coin.ticker,
+          coinName: signal.coin.name,
+        }
+      : undefined,
+  });
+}
+
+function getSignalsForTemplate(
+  template: 'SILENT_ACCUMULATION' | 'EXHAUSTION_MOVE' | 'DIVERGENCE_DETECTOR',
+  signals: AnomalySignal[],
+) {
+  const targetType =
+    template === 'SILENT_ACCUMULATION'
+      ? 'silent_accumulation'
+      : template === 'EXHAUSTION_MOVE'
+        ? 'exhaustion_move'
+        : 'divergence';
+
+  return signals.filter((signal) => signal.type === targetType);
+}
+
+async function buildAnomalyTemplateItems(
+  template: 'SILENT_ACCUMULATION' | 'EXHAUSTION_MOVE' | 'DIVERGENCE_DETECTOR',
+) {
+  const {videos} = await generateAnomalySignals();
+  const templateSignals = getSignalsForTemplate(template, videos);
+
+  if (!templateSignals.length) {
+    const readableName = template.toLowerCase().replaceAll('_', ' ');
+    throw new Error(`No crypto market signals met the ${readableName} thresholds clearly enough.`);
+  }
+
+  return templateSignals.map((signal) => mapSignalToMarketItem(template, signal));
+}
+
+export async function generateMarketTemplateItems(template: MarketTemplateId): Promise<MarketTemplateData[]> {
   switch (template) {
     case 'MARKET_SNAPSHOT':
-      return buildMarketSnapshot();
+      return [await buildMarketSnapshot()];
     case 'NARRATIVE_DETECTOR':
-      return buildNarrativeDetector();
+      return [await buildNarrativeDetector()];
     case 'ANOMALY_DETECTOR':
-      return buildAnomalyDetector();
+      return [await buildAnomalyDetector()];
     case 'VOLATILITY_REGIME':
-      return buildVolatilityRegime();
+      return [await buildVolatilityRegime()];
     case 'PATTERN_MATCH':
-      return buildPatternMatch();
+      return [await buildPatternMatch()];
+    case 'SILENT_ACCUMULATION':
+      return buildAnomalyTemplateItems('SILENT_ACCUMULATION');
+    case 'EXHAUSTION_MOVE':
+      return buildAnomalyTemplateItems('EXHAUSTION_MOVE');
+    case 'DIVERGENCE_DETECTOR':
+      return buildAnomalyTemplateItems('DIVERGENCE_DETECTOR');
     default:
       throw new Error(`Unsupported market template: ${template satisfies never}`);
   }
+}
+
+export async function generateMarketTemplateData(template: MarketTemplateId): Promise<MarketTemplateData> {
+  const items = await generateMarketTemplateItems(template);
+  return items[0];
 }

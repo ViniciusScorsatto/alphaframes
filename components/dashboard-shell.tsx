@@ -6,14 +6,16 @@ import {ComparisonAssetVideo} from '@/video/comparison-asset-video';
 import {FinancialAssetVideo} from '@/video/financial-asset-video';
 import {MarketInsightVideo} from '@/video/market-insight-video';
 import {DCA_CADENCE_OPTIONS, LOOKBACK_OPTIONS, VIDEO, TEMPLATE_OPTIONS} from '@/lib/constants';
+import {appendSignalLog, getSignalBlocks, getSignalRecommendation, scoreMarketItem} from '@/lib/signal-quality';
 import {Button, Input, Label, Select, Textarea} from '@/components/ui';
-import {formatCurrency, formatDisplayDate, formatPercent} from '@/lib/utils';
+import {cn, formatCurrency, formatDisplayDate, formatPercent} from '@/lib/utils';
 import type {
   AssetType,
   AnyGeneratedVideoData,
   DcaCadence,
   GenerateResponsePayload,
   LookbackWindow,
+  MarketSignalQuality,
   RenderedVideoResult,
   TemplateId,
 } from '@/types';
@@ -25,6 +27,9 @@ const MARKET_TEMPLATES: TemplateId[] = [
   'ANOMALY_DETECTOR',
   'VOLATILITY_REGIME',
   'PATTERN_MATCH',
+  'SILENT_ACCUMULATION',
+  'EXHAUSTION_MOVE',
+  'DIVERGENCE_DETECTOR',
 ];
 
 function parseTickers(value: string, assetType: AssetType) {
@@ -68,6 +73,8 @@ export function DashboardShell() {
   }, [history]);
 
   const selectedItem = generatedItems[selectedIndex] ?? null;
+  const selectedMarketQuality =
+    selectedItem?.kind === 'market' ? selectedItem.signal_quality ?? scoreMarketItem(selectedItem) : null;
   const tickerCount = useMemo(() => parseTickers(tickersInput, assetType).length, [tickersInput, assetType]);
   const isComparisonTemplate = template === 'COMPARE_ASSETS';
   const isMarketTemplate = MARKET_TEMPLATES.includes(template);
@@ -95,9 +102,31 @@ export function DashboardShell() {
             throw new Error(payload.error ?? 'Failed to generate market insight.');
           }
 
-          setGeneratedItems(payload.items);
+          const dataset = payload.marketContext?.dataset ?? [];
+          const scoredItems = payload.items.map((item) =>
+            item.kind === 'market'
+              ? {
+                  ...item,
+                  signal_quality: scoreMarketItem(item, dataset),
+                }
+              : item,
+          );
+
+          const anomalyLogEntries = scoredItems.flatMap((item) =>
+            item.kind === 'market' && item.signal_metadata
+              ? [
+                  {
+                    type: item.signal_metadata.type,
+                    coinId: item.signal_metadata.coinId,
+                  },
+                ]
+              : [],
+          );
+
+          appendSignalLog(anomalyLogEntries);
+          setGeneratedItems(scoredItems);
           setSelectedIndex(0);
-          setHistory((current) => [...payload.items, ...current].slice(0, 24));
+          setHistory((current) => [...scoredItems, ...current].slice(0, 24));
         } catch (requestError) {
           setError(requestError instanceof Error ? requestError.message : 'Failed to generate market insight.');
         }
@@ -364,11 +393,25 @@ export function DashboardShell() {
               </p>
             </div>
 
+            {selectedItem?.kind === 'market' && selectedMarketQuality ? (
+              <SignalQualityBlock quality={selectedMarketQuality} />
+            ) : null}
+
             <div className="flex flex-wrap gap-3">
               <Button onClick={handleGenerate} disabled={isGenerating}>
                 {isGenerating ? 'Generating...' : 'Generate'}
               </Button>
-              <Button variant="secondary" onClick={handleRender} disabled={isRendering || !generatedItems.length}>
+              <Button
+                variant="secondary"
+                onClick={handleRender}
+                disabled={isRendering || !generatedItems.length}
+                className={selectedMarketQuality?.label === 'Skip' ? 'opacity-60' : undefined}
+                title={
+                  selectedMarketQuality?.label === 'Skip'
+                    ? 'Signal scored too low to render. You can still proceed manually.'
+                    : undefined
+                }
+              >
                 {isRendering ? 'Rendering...' : 'Render Video'}
               </Button>
               <Button
@@ -443,60 +486,65 @@ export function DashboardShell() {
               ) : null}
             </div>
 
-            <div className="overflow-hidden rounded-[28px] border border-white/10 bg-black">
-              {selectedItem && selectedItem.kind === 'single' ? (
-                <Player
-                  component={FinancialAssetVideo}
-                  inputProps={{data: selectedItem}}
-                  durationInFrames={VIDEO.durationInFrames}
-                  compositionWidth={VIDEO.width}
-                  compositionHeight={VIDEO.height}
-                  fps={VIDEO.fps}
-                  controls
-                  loop
-                  showVolumeControls
-                  initiallyMuted={false}
-                  initiallyShowControls
-                  volumePersistenceKey="alphaframes-preview-volume"
-                  style={{width: '100%', aspectRatio: '9 / 16'}}
-                />
-              ) : selectedItem && selectedItem.kind === 'comparison' ? (
-                <Player
-                  component={ComparisonAssetVideo}
-                  inputProps={{data: selectedItem}}
-                  durationInFrames={VIDEO.durationInFrames}
-                  compositionWidth={VIDEO.width}
-                  compositionHeight={VIDEO.height}
-                  fps={VIDEO.fps}
-                  controls
-                  loop
-                  showVolumeControls
-                  initiallyMuted={false}
-                  initiallyShowControls
-                  volumePersistenceKey="alphaframes-preview-volume"
-                  style={{width: '100%', aspectRatio: '9 / 16'}}
-                />
-              ) : selectedItem && selectedItem.kind === 'market' ? (
-                <Player
-                  component={MarketInsightVideo}
-                  inputProps={{data: selectedItem}}
-                  durationInFrames={VIDEO.durationInFrames}
-                  compositionWidth={VIDEO.width}
-                  compositionHeight={VIDEO.height}
-                  fps={VIDEO.fps}
-                  controls
-                  loop
-                  showVolumeControls
-                  initiallyMuted={false}
-                  initiallyShowControls
-                  volumePersistenceKey="alphaframes-preview-volume"
-                  style={{width: '100%', aspectRatio: '9 / 16'}}
-                />
-              ) : (
-                <div className="flex aspect-[9/16] items-center justify-center text-sm text-zinc-500">
-                  Generate data to preview the vertical video.
-                </div>
-              )}
+            <div className="relative overflow-hidden rounded-[28px] border border-white/10 bg-black">
+              {selectedItem?.kind === 'market' && selectedMarketQuality ? (
+                <SignalStrengthPreviewBar quality={selectedMarketQuality} />
+              ) : null}
+              <div className={selectedItem?.kind === 'market' && selectedMarketQuality ? 'pt-7' : undefined}>
+                {selectedItem && selectedItem.kind === 'single' ? (
+                  <Player
+                    component={FinancialAssetVideo}
+                    inputProps={{data: selectedItem}}
+                    durationInFrames={VIDEO.durationInFrames}
+                    compositionWidth={VIDEO.width}
+                    compositionHeight={VIDEO.height}
+                    fps={VIDEO.fps}
+                    controls
+                    loop
+                    showVolumeControls
+                    initiallyMuted={false}
+                    initiallyShowControls
+                    volumePersistenceKey="alphaframes-preview-volume"
+                    style={{width: '100%', aspectRatio: '9 / 16'}}
+                  />
+                ) : selectedItem && selectedItem.kind === 'comparison' ? (
+                  <Player
+                    component={ComparisonAssetVideo}
+                    inputProps={{data: selectedItem}}
+                    durationInFrames={VIDEO.durationInFrames}
+                    compositionWidth={VIDEO.width}
+                    compositionHeight={VIDEO.height}
+                    fps={VIDEO.fps}
+                    controls
+                    loop
+                    showVolumeControls
+                    initiallyMuted={false}
+                    initiallyShowControls
+                    volumePersistenceKey="alphaframes-preview-volume"
+                    style={{width: '100%', aspectRatio: '9 / 16'}}
+                  />
+                ) : selectedItem && selectedItem.kind === 'market' ? (
+                  <Player
+                    component={MarketInsightVideo}
+                    inputProps={{data: selectedItem}}
+                    durationInFrames={VIDEO.durationInFrames}
+                    compositionWidth={VIDEO.width}
+                    compositionHeight={VIDEO.height}
+                    fps={VIDEO.fps}
+                    controls
+                    loop
+                    showVolumeControls
+                    initiallyMuted={false}
+                    initiallyShowControls
+                    volumePersistenceKey="alphaframes-preview-volume"
+                    style={{width: '100%', aspectRatio: '9 / 16'}}
+                  />
+                ) : (
+                  <div className="flex aspect-[9/16] items-center justify-center text-sm text-zinc-500">
+                    Generate data to preview the vertical video.
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 
@@ -525,6 +573,11 @@ export function DashboardShell() {
                   <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
                     {selectedItem.kind === 'market' ? (
                       <>
+                        <StatCard
+                          label="Signal Strength"
+                          value={selectedMarketQuality?.label ?? 'N/A'}
+                          signalColor={selectedMarketQuality?.color}
+                        />
                         <StatCard label="Confidence" value={`${Math.round(selectedItem.confidence * 100)}%`} />
                         <StatCard label="Risk" value={selectedItem.risk_label.toUpperCase()} gain={selectedItem.risk_label === 'low' ? true : selectedItem.risk_label === 'high' ? false : undefined} />
                         <StatCard label={selectedItem.supporting_stats[0]?.label ?? 'Supporting Stat'} value={selectedItem.supporting_stats[0]?.value ?? 'N/A'} />
@@ -543,7 +596,15 @@ export function DashboardShell() {
                       </>
                     )}
                     {selectedItem.kind === 'market' ? (
-                      <StatCard label="Generated" value={formatDisplayDate(selectedItem.generated_at)} />
+                      <>
+                        <StatCard label="Generated" value={formatDisplayDate(selectedItem.generated_at)} />
+                        <div className="rounded-3xl border border-white/10 bg-black/40 p-4 sm:col-span-2 xl:col-span-1">
+                          <div className="text-xs uppercase tracking-[0.24em] text-zinc-500">Signal Read</div>
+                          <div className="mt-2 text-sm leading-6 text-zinc-300">
+                            {selectedMarketQuality?.reasons[0] ?? 'Signal strength will appear here for market templates.'}
+                          </div>
+                        </div>
+                      </>
                     ) : (
                       <StatCard
                         label="Date Range"
@@ -598,13 +659,117 @@ export function DashboardShell() {
   );
 }
 
-function StatCard({label, value, gain}: {label: string; value: string; gain?: boolean}) {
+function StatCard({
+  label,
+  value,
+  gain,
+  signalColor,
+}: {
+  label: string;
+  value: string;
+  gain?: boolean;
+  signalColor?: 'green' | 'amber' | 'red';
+}) {
+  let textClass = 'text-white';
+
+  if (gain != null) {
+    textClass = gain ? 'text-emerald-300' : 'text-red-300';
+  } else if (signalColor === 'green') {
+    textClass = 'text-emerald-300';
+  } else if (signalColor === 'amber') {
+    textClass = 'text-amber-200';
+  } else if (signalColor === 'red') {
+    textClass = 'text-red-300';
+  }
+
   return (
     <div className="rounded-3xl border border-white/10 bg-black/40 p-4">
       <div className="text-xs uppercase tracking-[0.24em] text-zinc-500">{label}</div>
-      <div className={`mt-2 text-lg font-semibold ${gain == null ? 'text-white' : gain ? 'text-emerald-300' : 'text-red-300'}`}>
+      <div className={`mt-2 text-lg font-semibold ${textClass}`}>
         {value}
       </div>
+    </div>
+  );
+}
+
+function SignalQualityBlock({quality}: {quality: MarketSignalQuality}) {
+  return (
+    <div className="rounded-3xl border border-white/10 bg-white/5 p-4">
+      <div className="text-xs uppercase tracking-[0.24em] text-zinc-500">Signal Quality</div>
+      <div className="mt-3 flex items-center justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <span
+            className={cn(
+              'h-2 w-2 rounded-full',
+              quality.color === 'green'
+                ? 'bg-emerald-300'
+                : quality.color === 'amber'
+                  ? 'bg-amber-200'
+                  : 'bg-red-300',
+            )}
+          />
+          <span
+            className={cn(
+              'text-sm font-semibold',
+              quality.color === 'green'
+                ? 'text-emerald-300'
+                : quality.color === 'amber'
+                  ? 'text-amber-200'
+                  : 'text-red-300',
+            )}
+          >
+            {quality.label}
+          </span>
+        </div>
+        <span className="text-sm text-zinc-500">{quality.total}/8</span>
+      </div>
+      <div className="mt-3 space-y-1 text-[12px] leading-5 text-zinc-400">
+        {quality.reasons.map((reason) => (
+          <div key={reason}>{reason}</div>
+        ))}
+      </div>
+      <div
+        className={cn(
+          'mt-4 rounded-2xl border border-white/10 border-l-[3px] px-3 py-2 text-sm text-zinc-200',
+          quality.color === 'green'
+            ? 'border-l-emerald-300 bg-white/6'
+            : quality.color === 'amber'
+              ? 'border-l-amber-200 bg-white/6'
+              : 'border-l-red-300 bg-white/6',
+        )}
+      >
+        {getSignalRecommendation(quality.label)}
+      </div>
+    </div>
+  );
+}
+
+function SignalStrengthPreviewBar({quality}: {quality: MarketSignalQuality}) {
+  const filledBlocks = getSignalBlocks(quality.label);
+
+  return (
+    <div className="absolute inset-x-0 top-0 z-10 flex h-7 items-center gap-3 border-b border-white/15 bg-[#060806] px-3 font-mono text-[10px] uppercase tracking-[0.18em] text-zinc-400">
+      <span>Signal Strength</span>
+      <div className="flex items-center gap-[3px]">
+        {Array.from({length: 5}, (_, index) => (
+          <span
+            key={index}
+            className={cn(
+              'h-2 w-2 rounded-[2px]',
+              index < filledBlocks
+                ? quality.color === 'green'
+                  ? 'bg-emerald-300'
+                  : quality.color === 'amber'
+                    ? 'bg-amber-200'
+                    : 'bg-red-300'
+                : 'bg-zinc-800',
+            )}
+          />
+        ))}
+      </div>
+      <span className="truncate">
+        {quality.label} · {quality.reasons[0]}
+      </span>
     </div>
   );
 }

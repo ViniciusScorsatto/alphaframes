@@ -1,6 +1,6 @@
 import type {LookbackWindow, NormalizedAssetData} from '@/types';
 import {createBaseResult, sliceByLookback} from '@/templates/shared';
-import {formatCurrency, formatDisplayDate, formatPercent} from '@/lib/utils';
+import {formatAssetIdentity, formatCurrency, formatDisplayDate, formatPercent} from '@/lib/utils';
 
 export function bestDayToBuyTemplate(asset: NormalizedAssetData, investment: number, lookbackWindow: LookbackWindow = 365) {
   const period = sliceByLookback(asset.historical, lookbackWindow);
@@ -8,6 +8,7 @@ export function bestDayToBuyTemplate(asset: NormalizedAssetData, investment: num
   const shares = investment / bestBuyPoint.price;
   const valueToday = shares * asset.currentPrice;
   const returnPercent = ((asset.currentPrice - bestBuyPoint.price) / bestBuyPoint.price) * 100;
+  const assetLabel = formatAssetIdentity(asset.ticker, asset.displayName);
 
   return createBaseResult({
     asset,
@@ -20,7 +21,7 @@ export function bestDayToBuyTemplate(asset: NormalizedAssetData, investment: num
     bestBuyDate: bestBuyPoint.date,
     bestBuyPrice: bestBuyPoint.price,
     hookLabel: `${formatDisplayDate(bestBuyPoint.date)} -> ${formatCurrency(valueToday, asset.currency)}`,
-    contextLabel: `Best dip entry for ${asset.displayName} in the selected range`,
+    contextLabel: `Best dip entry for ${assetLabel} in the selected range`,
     resultLabel: `${formatPercent(returnPercent)} since the low`,
     insights: [
       `The lowest tracked close was ${formatCurrency(bestBuyPoint.price, asset.currency)} on ${formatDisplayDate(bestBuyPoint.date)}.`,

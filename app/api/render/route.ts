@@ -82,9 +82,18 @@ const comparisonItemSchema = z.object({
 
 const marketItemSchema = z.object({
   kind: z.literal('market'),
-  asset: z.literal('CRYPTO_MARKET'),
-  assetName: z.literal('Crypto Market'),
-  template: z.enum(['MARKET_SNAPSHOT', 'NARRATIVE_DETECTOR', 'ANOMALY_DETECTOR', 'VOLATILITY_REGIME', 'PATTERN_MATCH']),
+  asset: z.string(),
+  assetName: z.string(),
+  template: z.enum([
+    'MARKET_SNAPSHOT',
+    'NARRATIVE_DETECTOR',
+    'ANOMALY_DETECTOR',
+    'VOLATILITY_REGIME',
+    'PATTERN_MATCH',
+    'SILENT_ACCUMULATION',
+    'EXHAUSTION_MOVE',
+    'DIVERGENCE_DETECTOR',
+  ]),
   currency: z.literal('USD'),
   generated_at: z.string(),
   headline: z.string(),

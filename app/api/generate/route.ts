@@ -1,7 +1,8 @@
 import {NextResponse} from 'next/server';
 import {z} from 'zod';
+import {fetchTopCoinsMarketData} from '@/data/coingecko-market';
 import {getAssetData} from '@/data';
-import {generateComparisonData, generateMarketTemplateData, generateTemplateData, isMarketTemplate} from '@/templates';
+import {generateComparisonData, generateMarketTemplateItems, generateTemplateData, isMarketTemplate} from '@/templates';
 import type {GenerateResponsePayload} from '@/types';
 
 export const runtime = 'nodejs';
@@ -26,6 +27,9 @@ const requestSchema = z
       'ANOMALY_DETECTOR',
       'VOLATILITY_REGIME',
       'PATTERN_MATCH',
+      'SILENT_ACCUMULATION',
+      'EXHAUSTION_MOVE',
+      'DIVERGENCE_DETECTOR',
     ]),
     investment: z.number().positive(),
     lookbackWindow: z.union([z.literal(30), z.literal(90), z.literal(180), z.literal(365), z.literal('max')]).optional(),
@@ -66,8 +70,21 @@ export async function POST(request: Request) {
   try {
     const body = requestSchema.parse(await request.json());
     if (isMarketTemplate(body.template)) {
+      const [items, dataset] = await Promise.all([generateMarketTemplateItems(body.template), fetchTopCoinsMarketData()]);
+
       return NextResponse.json<GenerateResponsePayload>({
-        items: [await generateMarketTemplateData(body.template)],
+        items,
+        marketContext: {
+          dataset: dataset.map((coin) => ({
+            id: coin.id,
+            ticker: coin.ticker,
+            name: coin.name,
+            marketCap: coin.marketCap,
+            totalVolume: coin.totalVolume,
+            change24h: coin.change24h,
+            change7d: coin.change7d,
+          })),
+        },
       });
     }
 

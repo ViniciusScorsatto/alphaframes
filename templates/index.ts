@@ -4,7 +4,7 @@ import {compareAssetsTemplate} from '@/templates/compare-assets';
 import {dcaStrategyTemplate} from '@/templates/dca-strategy';
 import {last1YearTemplate} from '@/templates/last-1-year';
 import {last30DaysTemplate} from '@/templates/last-30-days';
-import {generateMarketTemplateData} from '@/templates/market-insights';
+import {generateMarketTemplateData, generateMarketTemplateItems} from '@/templates/market-insights';
 import {thenVsNowTemplate} from '@/templates/then-vs-now';
 
 type TemplateFn = (
@@ -35,6 +35,15 @@ const templateMap: Record<Exclude<TemplateId, 'COMPARE_ASSETS'>, TemplateFn> = {
   PATTERN_MATCH: () => {
     throw new Error('PATTERN_MATCH uses the market template generator.');
   },
+  SILENT_ACCUMULATION: () => {
+    throw new Error('SILENT_ACCUMULATION uses the market template generator.');
+  },
+  EXHAUSTION_MOVE: () => {
+    throw new Error('EXHAUSTION_MOVE uses the market template generator.');
+  },
+  DIVERGENCE_DETECTOR: () => {
+    throw new Error('DIVERGENCE_DETECTOR uses the market template generator.');
+  },
 };
 
 export function isMarketTemplate(template: TemplateId): template is MarketTemplateId {
@@ -44,6 +53,9 @@ export function isMarketTemplate(template: TemplateId): template is MarketTempla
     'ANOMALY_DETECTOR',
     'VOLATILITY_REGIME',
     'PATTERN_MATCH',
+    'SILENT_ACCUMULATION',
+    'EXHAUSTION_MOVE',
+    'DIVERGENCE_DETECTOR',
   ].includes(template);
 }
 
@@ -75,4 +87,4 @@ export function generateComparisonData(
   return compareAssetsTemplate(primary, secondary, investment, lookbackWindow);
 }
 
-export {generateMarketTemplateData};
+export {generateMarketTemplateData, generateMarketTemplateItems};
