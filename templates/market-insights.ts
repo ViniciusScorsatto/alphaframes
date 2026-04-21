@@ -1,5 +1,16 @@
 import {fetchCategorySnapshots, fetchCoinMarketChart, fetchTopCoinsMarketData} from '@/data/coingecko-market';
 import type {MarketCoinSnapshot} from '@/data/coingecko-market';
+import {
+  generateAnomalyDetectorNarrative,
+  generateDivergenceNarrative,
+  generateExhaustionMoveNarrative,
+  generateMarketSnapshotNarrative,
+  generateNarrativeDetectorNarrative,
+  generatePatternMatchNarrative,
+  generateSilentAccumulationNarrative,
+  generateVolatilityRegimeNarrative,
+  selectNarrativeContext,
+} from '@/lib/market-narrative';
 import {clamp, formatPercent, toIsoDate} from '@/lib/utils';
 import type {MarketTemplateData, MarketTemplateId} from '@/types';
 
@@ -180,6 +191,15 @@ async function buildMarketSnapshot() {
       (coin) => Math.sign(coin.change24h) === Math.sign(marketAverage24h) || coin.change24h === 0,
     ).length / coins.length;
 
+  const narrative_text = await generateMarketSnapshotNarrative({
+    marketAverage24h,
+    btcChange24h,
+    altAverage24h,
+    breadthRatio: breadth,
+    topCategory: topCategory?.name ?? null,
+    topCategoryChange24h: topCategory?.change24h ?? 0,
+  });
+
   return createMarketResult({
     asset: 'CRYPTO_MARKET',
     assetName: 'Crypto Market',
@@ -190,10 +210,7 @@ async function buildMarketSnapshot() {
       {label: 'BTC vs alt proxy', value: `${formatPercent(btcChange24h)} vs ${formatPercent(altAverage24h)}`},
       {label: 'Top category', value: `${topCategory?.name ?? 'N/A'} ${formatPercent(topCategory?.change24h ?? 0)}`},
     ],
-    narrative_text:
-      marketAverage24h >= 0
-        ? `Crypto market breadth is leaning positive, with BTC ${btcChange24h >= altAverage24h ? 'holding up better than the alt proxy' : 'lagging the alt proxy'} and ${topCategory?.name ?? 'the leading category'} setting the pace.`
-        : `Crypto market breadth is leaning negative, with BTC ${btcChange24h >= altAverage24h ? 'holding up better than the alt proxy' : 'dragging against the alt proxy'} while ${topCategory?.name ?? 'the leading category'} still shows the strongest relative resilience.`,
+    narrative_text,
     confidence: Number(clamp(0.45 + breadth * 0.4, 0, 1).toFixed(2)),
     risk_label: toRiskLabel(dispersion24h, 3, 5.5),
     data_points: {
@@ -226,7 +243,19 @@ async function buildNarrativeDetector() {
       {label: 'Market average', value: formatPercent(marketAverage24h)},
       {label: 'Relative strength', value: formatPercent(relativeStrength)},
     ],
-    narrative_text: `This suggests capital rotation into ${strongest?.name ?? 'the leading category'}, with that group moving ${formatPercent(relativeStrength)} ahead of the broader crypto market average.`,
+    narrative_text: await generateNarrativeDetectorNarrative({
+      strongestCategory: strongest?.name ?? null,
+      strongestCategoryChange24h: strongest?.change24h ?? 0,
+      marketAverage24h,
+      relativeStrength24h: relativeStrength,
+      activeNarrative: selectNarrativeContext({
+        exhaustion: 'none',
+        accumulation: 'volume_without_bias',
+        anomaly: Math.abs(relativeStrength) > 15 ? 'extreme_anomaly' : Math.abs(relativeStrength) > 8 ? 'moderate_anomaly' : 'normal',
+        divergence: Math.abs(relativeStrength) > 8 ? 'sector_outperformance' : 'no_divergence',
+        pattern: (strongest?.change24h ?? 0) > 0 ? 'momentum_expansion' : 'no_clear_pattern',
+      }),
+    }),
     confidence: Number(confidence.toFixed(2)),
     risk_label: toRiskLabel(Math.abs(relativeStrength) + dispersion24h, 5, 9),
     data_points: {
@@ -264,7 +293,12 @@ async function buildAnomalyDetector() {
         value: `${((target?.volumeToMarketCapRatio ?? 0) * 100).toFixed(2)}%`,
       },
     ],
-    narrative_text: `${target?.name ?? 'This asset'} is showing price and volume expansion together inside the crypto market, which often marks a momentum-heavy phase rather than a quiet rotation.`,
+    narrative_text: await generateAnomalyDetectorNarrative({
+      coinName: target?.name ?? null,
+      change24h: target?.change24h ?? 0,
+      change7d: target?.change7d ?? 0,
+      volumeToMarketCapRatio: target?.volumeToMarketCapRatio ?? 0,
+    }),
     confidence: Number(confidence.toFixed(2)),
     risk_label: toRiskLabel(
       Math.abs(target?.change24h ?? 0) + (target?.volumeToMarketCapRatio ?? 0) * 100 + dispersion24h,
@@ -300,12 +334,12 @@ async function buildVolatilityRegime() {
       {label: 'Average absolute move', value: formatPercent(absoluteAverageMove)},
       {label: 'Market average', value: formatPercent(marketAverage24h)},
     ],
-    narrative_text:
-      volatilityLabel === 'high'
-        ? 'Similar conditions historically line up with unstable price swings and fast narrative rotation.'
-        : volatilityLabel === 'low'
-          ? 'Similar conditions historically line up with quieter price action and slower rotation between majors and alts.'
-          : 'The current tape is active but not fully unstable, which often keeps direction changes quick and selective.',
+    narrative_text: await generateVolatilityRegimeNarrative({
+      dispersion24h,
+      absoluteAverageMove,
+      marketAverage24h,
+      volatilityLabel,
+    }),
     confidence: Number(confidence.toFixed(2)),
     risk_label: volatilityLabel,
     data_points: {
@@ -366,11 +400,6 @@ async function buildPatternMatch() {
   const similarCases = bestMatch?.cases.length ?? 0;
   const averageOutcome = bestMatch?.averageForward7d ?? 0;
   const confidence = clamp(0.35 + Math.min(similarCases / 10, 0.55), 0, 1);
-  const narrativeTail =
-    averageOutcome >= 0
-      ? `Across ${similarCases} similar spikes, the average 7-day follow-through stayed positive at ${formatPercent(averageOutcome)}.`
-      : `Across ${similarCases} similar spikes, the average 7-day follow-through faded by ${formatPercent(Math.abs(averageOutcome)).replace('+', '')}.`;
-
   return createMarketResult({
     asset: bestMatch?.coin.ticker ?? 'CRYPTO_MARKET',
     assetName: bestMatch?.coin.name ? `${bestMatch.coin.name} / Crypto Market` : 'Crypto Market',
@@ -381,10 +410,13 @@ async function buildPatternMatch() {
       {label: 'Similar cases', value: String(similarCases)},
       {label: 'Avg 7d outcome', value: formatPercent(averageOutcome)},
     ],
-    narrative_text:
-      similarCases > 0
-        ? `${bestMatch?.coin.name ?? 'This move'} is echoing earlier spike behaviour in its own history. ${narrativeTail}`
-        : `${bestMatch?.coin.name ?? 'The current move'} is strong, but recent CoinGecko history does not show enough matching spikes to form a reliable pattern read yet.`,
+    narrative_text: await generatePatternMatchNarrative({
+      coinName: bestMatch?.coin.name ?? null,
+      currentChange24h: bestMatch?.coin.change24h ?? 0,
+      volumeToMarketCapRatio: bestMatch?.coin.volumeToMarketCapRatio ?? 0,
+      similarCases,
+      averageForward7d: averageOutcome,
+    }),
     confidence: Number(confidence.toFixed(2)),
     risk_label: toRiskLabel(Math.abs(bestMatch?.coin.change24h ?? 0) + Math.abs(averageOutcome), 10, 18),
     data_points: {
@@ -403,7 +435,7 @@ async function buildPatternMatch() {
   });
 }
 
-function createSilentAccumulationSignals(coins: MarketCoinSnapshot[]): SilentAccumulationSignal[] {
+async function createSilentAccumulationSignals(coins: MarketCoinSnapshot[]): Promise<SilentAccumulationSignal[]> {
   const filtered = coins.filter(
     (coin) =>
       !isStablecoinLike(coin) &&
@@ -412,20 +444,26 @@ function createSilentAccumulationSignals(coins: MarketCoinSnapshot[]): SilentAcc
       coin.marketCap > 0,
   );
   const avgRatio = average(filtered.map((coin) => coin.volumeToMarketCapRatio));
-
-  return filtered
+  const candidates = filtered
     .filter((coin) => coin.volumeToMarketCapRatio > avgRatio * 1.5)
     .sort((a, b) => b.volumeToMarketCapRatio - a.volumeToMarketCapRatio)
-    .slice(0, 2)
-    .map((coin) => {
+    .slice(0, 2);
+
+  return Promise.all(
+    candidates.map(async (coin) => {
       const signalStrength = coin.volumeToMarketCapRatio / Math.max(avgRatio, 0.000001);
       const confidence = clamp(0.6 + Math.min((signalStrength - 1.5) * 0.08, 0.15), 0.6, 0.75);
 
       return {
         type: 'silent_accumulation',
         headline: `Unusual accumulation detected in ${formatCoinHeadlineLabel(coin)}`,
-        narrative:
-          'Volume is increasing while price remains stable. This pattern has historically appeared before larger directional moves.',
+        narrative: await generateSilentAccumulationNarrative({
+          coinName: coin.name,
+          change24h: coin.change24h,
+          change7d: coin.change7d,
+          volumeRatio: coin.volumeToMarketCapRatio,
+          signalThreshold: avgRatio * 1.5,
+        }),
         confidence: Number(confidence.toFixed(2)),
         risk_label: 'medium',
         coin: {
@@ -444,37 +482,39 @@ function createSilentAccumulationSignals(coins: MarketCoinSnapshot[]): SilentAcc
           signal_value: Number(coin.volumeToMarketCapRatio.toFixed(4)),
           signal_threshold: Number((avgRatio * 1.5).toFixed(4)),
         },
-      };
-    });
+      } satisfies SilentAccumulationSignal;
+    }),
+  );
 }
 
-function createExhaustionMoveSignals(coins: MarketCoinSnapshot[]): ExhaustionMoveSignal[] {
+async function createExhaustionMoveSignals(coins: MarketCoinSnapshot[]): Promise<ExhaustionMoveSignal[]> {
   const anomalyCoins = coins.filter((coin) => !isStablecoinLike(coin));
   const averageVolume = average(anomalyCoins.map((coin) => coin.totalVolume));
-
-  return anomalyCoins
+  const candidates = anomalyCoins
     .filter((coin) => coin.change7d >= 20 && Math.abs(coin.change24h) <= 2)
     .map((coin) => {
       const volumePenalty =
         coin.totalVolume > averageVolume * 1.5
           ? Math.min(((coin.totalVolume / Math.max(averageVolume, 1)) - 1.5) * 4, 8)
           : 0;
-
-      return {
-        coin,
-        score: coin.change7d - volumePenalty,
-      };
+      return {coin, score: coin.change7d - volumePenalty};
     })
     .sort((a, b) => b.score - a.score || b.coin.change7d - a.coin.change7d)
-    .slice(0, 2)
-    .map(({coin, score}) => {
+    .slice(0, 2);
+
+  return Promise.all(
+    candidates.map(async ({coin, score}) => {
       const confidence = clamp(0.65 + Math.min((score - 20) / 80, 0.15), 0.65, 0.8);
 
       return {
         type: 'exhaustion_move',
         headline: `Momentum slowing after strong move in ${formatCoinHeadlineLabel(coin)}`,
-        narrative:
-          'After a strong upward move, short-term momentum is weakening. Similar patterns often transition into consolidation or pullbacks.',
+        narrative: await generateExhaustionMoveNarrative({
+          coinName: coin.name,
+          change7d: coin.change7d,
+          change24h: coin.change24h,
+          volumeToMarketCapRatio: coin.volumeToMarketCapRatio,
+        }),
         confidence: Number(confidence.toFixed(2)),
         risk_label: 'high',
         coin: {
@@ -492,39 +532,46 @@ function createExhaustionMoveSignals(coins: MarketCoinSnapshot[]): ExhaustionMov
           signal_value: Number(coin.change7d.toFixed(2)),
           signal_threshold: 20,
         },
-      };
-    });
+      } satisfies ExhaustionMoveSignal;
+    }),
+  );
 }
 
-function createDivergenceSignals(coins: MarketCoinSnapshot[]): DivergenceSignal[] {
+async function createDivergenceSignals(coins: MarketCoinSnapshot[]): Promise<DivergenceSignal[]> {
   const anomalyCoins = coins.filter((coin) => !isStablecoinLike(coin));
+  const btcChange24h = coins.find((coin) => coin.ticker === 'BTC')?.change24h ?? 0;
+  const altAverage24h = average(anomalyCoins.filter((coin) => coin.ticker !== 'BTC').map((coin) => coin.change24h));
+  const topCategoryChange24h = [...anomalyCoins].sort((a, b) => b.change24h - a.change24h)[0]?.change24h ?? 0;
   const top50 = anomalyCoins.slice(0, 50);
   const top50Sum = top50.reduce((sum, coin) => sum + coin.change24h, 0);
-
-  return anomalyCoins
+  const candidates = anomalyCoins
     .map((coin) => {
       const isInTop50 = top50.some((entry) => entry.id === coin.id);
       const divisor = isInTop50 ? Math.max(top50.length - 1, 1) : Math.max(top50.length, 1);
       const baseline = isInTop50 ? (top50Sum - coin.change24h) / divisor : top50Sum / divisor;
       const divergence = coin.change24h - baseline;
-
-      return {
-        coin,
-        baseline,
-        divergence,
-      };
+      return {coin, baseline, divergence};
     })
     .filter((entry) => Math.abs(entry.divergence) >= 8)
     .sort((a, b) => Math.abs(b.divergence) - Math.abs(a.divergence))
-    .slice(0, 2)
-    .map(({coin, baseline, divergence}) => {
+    .slice(0, 2);
+
+  return Promise.all(
+    candidates.map(async ({coin, baseline, divergence}) => {
       const confidence = clamp(0.6 + Math.min((Math.abs(divergence) - 8) / 32, 0.15), 0.6, 0.75);
 
       return {
         type: 'divergence',
         headline: `${formatCoinHeadlineLabel(coin)} diverging from broader market`,
-        narrative:
-          'This asset is moving significantly differently from the market average, indicating potential leadership or instability.',
+        narrative: await generateDivergenceNarrative({
+          coinName: coin.name,
+          change24h: coin.change24h,
+          marketAvg24h: baseline,
+          divergence,
+          btcChange24h,
+          altAverage24h,
+          topCategoryChange24h,
+        }),
         confidence: Number(confidence.toFixed(2)),
         risk_label: 'medium',
         coin: {
@@ -543,19 +590,21 @@ function createDivergenceSignals(coins: MarketCoinSnapshot[]): DivergenceSignal[
           signal_value: Number(Math.abs(divergence).toFixed(2)),
           signal_threshold: 8,
         },
-      };
-    });
+      } satisfies DivergenceSignal;
+    }),
+  );
 }
 
 export async function generateAnomalySignals() {
   const coins = await fetchTopCoinsMarketData();
+  const [silent, exhaustion, divergence] = await Promise.all([
+    createSilentAccumulationSignals(coins),
+    createExhaustionMoveSignals(coins),
+    createDivergenceSignals(coins),
+  ]);
 
   return {
-    videos: [
-      ...createSilentAccumulationSignals(coins),
-      ...createExhaustionMoveSignals(coins),
-      ...createDivergenceSignals(coins),
-    ] satisfies AnomalySignal[],
+    videos: [...silent, ...exhaustion, ...divergence] satisfies AnomalySignal[],
   };
 }
 
