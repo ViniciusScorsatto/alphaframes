@@ -77,7 +77,7 @@ export const VIDEO = {
   width: 1080,
   height: 1920,
   fps: 30,
-  durationInFrames: 420,
+  durationInFrames: 540,
 };
 
 export const LOOKBACK_OPTIONS: {label: string; value: LookbackWindow}[] = [

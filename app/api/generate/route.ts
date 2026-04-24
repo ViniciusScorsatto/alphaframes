@@ -2,6 +2,7 @@ import {NextResponse} from 'next/server';
 import {z} from 'zod';
 import {fetchTopCoinsMarketData} from '@/data/coingecko-market';
 import {getAssetData} from '@/data';
+import {generateComparisonAnalystNote, generateSingleAssetAnalystNote} from '@/lib/asset-narrative';
 import {generateComparisonData, generateMarketTemplateItems, generateTemplateData, isMarketTemplate} from '@/templates';
 import type {GenerateResponsePayload} from '@/types';
 
@@ -97,16 +98,31 @@ export async function POST(request: Request) {
         getAssetData(body.comparison.primary.ticker, body.comparison.primary.assetType),
         getAssetData(body.comparison.secondary.ticker, body.comparison.secondary.assetType),
       ]);
+      const comparison = generateComparisonData(primary, secondary, body.investment, body.lookbackWindow);
+      const analystNote = await generateComparisonAnalystNote(comparison);
 
       return NextResponse.json<GenerateResponsePayload>({
-        items: [generateComparisonData(primary, secondary, body.investment, body.lookbackWindow)],
+        items: [
+          {
+            ...comparison,
+            analystNote,
+          },
+        ],
       });
     }
 
     const items = await Promise.all(
       body.tickers.map(async ({ticker, assetType}) => {
         const asset = await getAssetData(ticker, assetType);
-        return generateTemplateData(asset, body.template, body.investment, body.lookbackWindow, body.dcaCadence);
+        const generated = generateTemplateData(asset, body.template, body.investment, body.lookbackWindow, body.dcaCadence);
+        if (generated.kind !== 'single') {
+          throw new Error('Unexpected non-single template output.');
+        }
+        const analystNote = await generateSingleAssetAnalystNote(generated);
+        return {
+          ...generated,
+          analystNote,
+        };
       }),
     );
 

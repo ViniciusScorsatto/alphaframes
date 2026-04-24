@@ -22,6 +22,10 @@ export function GrowthScene({
     extrapolateLeft: 'clamp',
     extrapolateRight: 'clamp',
   });
+  const fadeOut = interpolate(frame, [154, 176], [1, 0], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
   const color = returnPercent >= 0 ? videoTheme.gain : videoTheme.loss;
 
   return (
@@ -29,7 +33,7 @@ export function GrowthScene({
       style={{
         justifyContent: 'flex-end',
         padding: '0 72px 410px',
-        opacity,
+        opacity: opacity * fadeOut,
         transform: `translateY(${40 - lift * 40}px)`,
       }}
     >

@@ -2,7 +2,7 @@ import {AbsoluteFill, interpolate, useCurrentFrame} from 'remotion';
 import {formatDatesInText} from '../../lib/utils';
 import {videoTheme} from '../theme';
 
-export function ResultScene({label, insights}: {label: string; insights: string[]}) {
+export function ResultScene({label, insights, analystNote}: {label: string; insights: string[]; analystNote?: string}) {
   const frame = useCurrentFrame();
   const opacity = interpolate(frame, [158, 182], [0, 1], {
     extrapolateLeft: 'clamp',
@@ -26,6 +26,11 @@ export function ResultScene({label, insights}: {label: string; insights: string[
         <div style={{marginTop: 18, fontSize: 38, color: videoTheme.foreground, lineHeight: 1.3}}>
           {formatDatesInText(insights[0])}
         </div>
+        {analystNote ? (
+          <div style={{marginTop: 16, fontSize: 27, color: videoTheme.secondary, lineHeight: 1.35}}>
+            {formatDatesInText(analystNote)}
+          </div>
+        ) : null}
       </div>
     </AbsoluteFill>
   );

@@ -66,6 +66,7 @@ export interface GeneratedVideoData {
   resultLabel: string;
   timeline: HistoricalPricePoint[];
   insights: string[];
+  analystNote?: string;
 }
 
 export interface ComparisonTimelinePoint {
@@ -88,6 +89,7 @@ export interface ComparisonVideoData {
   contextLabel: string;
   resultLabel: string;
   insights: string[];
+  analystNote?: string;
   primaryAsset: {
     ticker: string;
     assetType: AssetType;

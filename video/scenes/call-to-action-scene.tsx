@@ -3,8 +3,8 @@ import {videoTheme} from '../theme';
 
 export function CallToActionScene() {
   const frame = useCurrentFrame();
-  const {fps} = useVideoConfig();
-  const ctaStart = 328;
+  const {fps, durationInFrames} = useVideoConfig();
+  const ctaStart = Math.max(durationInFrames - 92, 0);
   const backgroundOpacity = interpolate(frame, [ctaStart, ctaStart + 1], [0, 1], {
     extrapolateLeft: 'clamp',
     extrapolateRight: 'clamp',
@@ -22,7 +22,7 @@ export function CallToActionScene() {
     extrapolateLeft: 'clamp',
     extrapolateRight: 'clamp',
   });
-  const panelOpacity = interpolate(frame, [ctaStart, ctaStart + 14, 420], [0, 1, 1], {
+  const panelOpacity = interpolate(frame, [ctaStart, ctaStart + 14, durationInFrames], [0, 1, 1], {
     extrapolateLeft: 'clamp',
     extrapolateRight: 'clamp',
   });

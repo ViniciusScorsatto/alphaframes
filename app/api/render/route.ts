@@ -33,6 +33,7 @@ const singleItemSchema = z.object({
     }),
   ),
   insights: z.array(z.string()),
+  analystNote: z.string().optional(),
 });
 
 const comparisonItemSchema = z.object({
@@ -48,6 +49,7 @@ const comparisonItemSchema = z.object({
   contextLabel: z.string(),
   resultLabel: z.string(),
   insights: z.array(z.string()),
+  analystNote: z.string().optional(),
   primaryAsset: z.object({
     ticker: z.string(),
     assetType: z.enum(['crypto', 'stock', 'etf']),

@@ -64,7 +64,7 @@ export function FinancialAssetVideo({data}: {data: GeneratedVideoData}) {
         <GrowthScene valueToday={data.valueToday} returnPercent={data.return} currency={data.currency} />
       </Sequence>
       <Sequence from={contentStart}>
-        <ResultScene label={data.resultLabel} insights={data.insights} />
+        <ResultScene label={data.resultLabel} insights={data.insights} analystNote={data.analystNote} />
       </Sequence>
       <CallToActionScene />
       <DisclaimerScene />

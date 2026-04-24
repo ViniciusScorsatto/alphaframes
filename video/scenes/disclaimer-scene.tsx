@@ -1,9 +1,11 @@
-import {AbsoluteFill, interpolate, useCurrentFrame} from 'remotion';
+import {AbsoluteFill, interpolate, useCurrentFrame, useVideoConfig} from 'remotion';
 import {videoTheme} from '../theme';
 
-export function DisclaimerScene({startFrame = 352}: {startFrame?: number}) {
+export function DisclaimerScene({startFrame}: {startFrame?: number}) {
   const frame = useCurrentFrame();
-  const opacity = interpolate(frame, [startFrame, startFrame + 30], [0, 0.78], {
+  const {durationInFrames} = useVideoConfig();
+  const resolvedStart = startFrame ?? Math.max(durationInFrames - 68, 0);
+  const opacity = interpolate(frame, [resolvedStart, resolvedStart + 30], [0, 0.78], {
     extrapolateLeft: 'clamp',
     extrapolateRight: 'clamp',
   });

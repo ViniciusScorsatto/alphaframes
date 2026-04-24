@@ -30,6 +30,7 @@ const requestSchema = z.object({
         }),
       ),
       insights: z.array(z.string()),
+      analystNote: z.string().optional(),
       bestBuyDate: z.string().optional(),
       bestBuyPrice: z.number().optional(),
       sharesAccumulated: z.number().optional(),
@@ -47,6 +48,7 @@ const requestSchema = z.object({
       contextLabel: z.string(),
       resultLabel: z.string(),
       insights: z.array(z.string()),
+      analystNote: z.string().optional(),
       primaryAsset: z.object({
         ticker: z.string(),
         assetType: z.enum(['crypto', 'stock', 'etf']),

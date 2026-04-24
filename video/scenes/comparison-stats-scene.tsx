@@ -46,6 +46,11 @@ export function ComparisonStatsScene({data}: {data: ComparisonVideoData}) {
         <div style={{marginTop: 14, fontSize: 34, color: videoTheme.foreground, lineHeight: 1.3}}>
           {data.insights[0]}
         </div>
+        {data.analystNote ? (
+          <div style={{marginTop: 14, fontSize: 26, color: videoTheme.secondary, lineHeight: 1.35}}>
+            {data.analystNote}
+          </div>
+        ) : null}
       </div>
     </AbsoluteFill>
   );

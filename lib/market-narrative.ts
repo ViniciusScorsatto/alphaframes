@@ -129,10 +129,11 @@ const ACCUMULATION_SCENARIO_CONTEXT: Record<AccumulationScenario, string> = {
 
 export function classifyAccumulationScenario(price24h: number, price7d: number, volumeToMc: number): AccumulationScenario {
   const flat = Math.abs(price24h) < 2;
+  const notDeclining = price24h >= 0;
   const slightUp = price7d > 0;
-  const elevatedVolume = volumeToMc > 0.35;
+  const elevatedVolume = volumeToMc > 0.6;
 
-  if (flat && slightUp && elevatedVolume) return 'silent_accumulation';
+  if (flat && notDeclining && slightUp && elevatedVolume) return 'silent_accumulation';
   return 'volume_without_bias';
 }
 
