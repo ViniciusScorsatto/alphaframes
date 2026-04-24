@@ -11,10 +11,12 @@
     "render": "remotion render remotion/index.ts FinancialAssetVideo out/video.mp4"
   },
   "dependencies": {
+    "@google-cloud/text-to-speech": "^6.4.0",
     "@remotion/bundler": "latest",
     "@remotion/player": "latest",
     "@remotion/renderer": "latest",
     "clsx": "^2.1.1",
+    "music-metadata": "^11.12.3",
     "next": "^16.2.1",
     "openai": "^6.34.0",
     "react": "^19.2.0",

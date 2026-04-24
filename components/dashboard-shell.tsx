@@ -504,7 +504,6 @@ export function DashboardShell() {
                     showVolumeControls
                     initiallyMuted={false}
                     initiallyShowControls
-                    volumePersistenceKey="alphaframes-preview-volume"
                     style={{width: '100%', aspectRatio: '9 / 16'}}
                   />
                 ) : selectedItem && selectedItem.kind === 'comparison' ? (
@@ -520,7 +519,6 @@ export function DashboardShell() {
                     showVolumeControls
                     initiallyMuted={false}
                     initiallyShowControls
-                    volumePersistenceKey="alphaframes-preview-volume"
                     style={{width: '100%', aspectRatio: '9 / 16'}}
                   />
                 ) : selectedItem && selectedItem.kind === 'market' ? (
@@ -536,7 +534,6 @@ export function DashboardShell() {
                     showVolumeControls
                     initiallyMuted={false}
                     initiallyShowControls
-                    volumePersistenceKey="alphaframes-preview-volume"
                     style={{width: '100%', aspectRatio: '9 / 16'}}
                   />
                 ) : (

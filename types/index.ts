@@ -67,6 +67,9 @@ export interface GeneratedVideoData {
   timeline: HistoricalPricePoint[];
   insights: string[];
   analystNote?: string;
+  voiceoverUrl?: string;
+  voiceoverText?: string;
+  voiceoverDurationFrames?: number;
 }
 
 export interface ComparisonTimelinePoint {
@@ -90,6 +93,9 @@ export interface ComparisonVideoData {
   resultLabel: string;
   insights: string[];
   analystNote?: string;
+  voiceoverUrl?: string;
+  voiceoverText?: string;
+  voiceoverDurationFrames?: number;
   primaryAsset: {
     ticker: string;
     assetType: AssetType;
@@ -138,6 +144,9 @@ export interface MarketTemplateData {
     coinName: string;
   };
   signal_quality?: MarketSignalQuality;
+  voiceoverUrl?: string;
+  voiceoverText?: string;
+  voiceoverDurationFrames?: number;
 }
 
 export type AnyGeneratedVideoData = GeneratedVideoData | ComparisonVideoData | MarketTemplateData;

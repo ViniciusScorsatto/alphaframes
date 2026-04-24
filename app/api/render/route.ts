@@ -34,6 +34,9 @@ const singleItemSchema = z.object({
   ),
   insights: z.array(z.string()),
   analystNote: z.string().optional(),
+  voiceoverUrl: z.string().optional(),
+  voiceoverText: z.string().optional(),
+  voiceoverDurationFrames: z.number().optional(),
 });
 
 const comparisonItemSchema = z.object({
@@ -50,6 +53,9 @@ const comparisonItemSchema = z.object({
   resultLabel: z.string(),
   insights: z.array(z.string()),
   analystNote: z.string().optional(),
+  voiceoverUrl: z.string().optional(),
+  voiceoverText: z.string().optional(),
+  voiceoverDurationFrames: z.number().optional(),
   primaryAsset: z.object({
     ticker: z.string(),
     assetType: z.enum(['crypto', 'stock', 'etf']),
@@ -109,6 +115,9 @@ const marketItemSchema = z.object({
   confidence: z.number(),
   risk_label: z.enum(['low', 'medium', 'high']),
   data_points: z.record(z.string(), z.unknown()),
+  voiceoverUrl: z.string().optional(),
+  voiceoverText: z.string().optional(),
+  voiceoverDurationFrames: z.number().optional(),
 });
 
 const requestSchema = z.object({

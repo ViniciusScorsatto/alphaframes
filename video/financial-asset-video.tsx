@@ -1,4 +1,5 @@
 import {AbsoluteFill, Audio, Sequence, staticFile} from 'remotion';
+import {getMusicVolume, toPublicStaticPath, VOICEOVER_VOLUME} from '@/lib/audio-timing';
 import {formatCurrency} from '../lib/utils';
 import type {GeneratedVideoData} from '../types';
 import {getSingleIntroCopy} from './intro-copy';
@@ -16,6 +17,8 @@ export function FinancialAssetVideo({data}: {data: GeneratedVideoData}) {
   const introCopy = getSingleIntroCopy(data);
   const introDuration = 172;
   const contentStart = 130;
+  const musicVolume = getMusicVolume(data);
+  const voiceoverPath = toPublicStaticPath(data.voiceoverUrl);
 
   return (
     <AbsoluteFill
@@ -24,7 +27,8 @@ export function FinancialAssetVideo({data}: {data: GeneratedVideoData}) {
           'radial-gradient(circle at top, rgba(0,255,136,0.18), transparent 25%), radial-gradient(circle at bottom right, rgba(255,77,77,0.12), transparent 28%), #000',
       }}
     >
-      <Audio src={staticFile('audio/make-money-money.mp3')} volume={0.14} />
+      {voiceoverPath ? <Audio src={staticFile(voiceoverPath)} volume={VOICEOVER_VOLUME} /> : null}
+      <Audio src={staticFile('audio/make-money-money.mp3')} volume={musicVolume} />
       <AbsoluteFill style={{opacity: 0.14}}>
         <div
           style={{

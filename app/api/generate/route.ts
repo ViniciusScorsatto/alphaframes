@@ -3,6 +3,7 @@ import {z} from 'zod';
 import {fetchTopCoinsMarketData} from '@/data/coingecko-market';
 import {getAssetData} from '@/data';
 import {generateComparisonAnalystNote, generateSingleAssetAnalystNote} from '@/lib/asset-narrative';
+import {addVoiceoverToItem} from '@/lib/google-tts';
 import {generateComparisonData, generateMarketTemplateItems, generateTemplateData, isMarketTemplate} from '@/templates';
 import type {GenerateResponsePayload} from '@/types';
 
@@ -72,9 +73,10 @@ export async function POST(request: Request) {
     const body = requestSchema.parse(await request.json());
     if (isMarketTemplate(body.template)) {
       const [items, dataset] = await Promise.all([generateMarketTemplateItems(body.template), fetchTopCoinsMarketData()]);
+      const itemsWithVoiceover = await Promise.all(items.map((item) => addVoiceoverToItem(item)));
 
       return NextResponse.json<GenerateResponsePayload>({
-        items,
+        items: itemsWithVoiceover,
         marketContext: {
           dataset: dataset.map((coin) => ({
             id: coin.id,
@@ -103,10 +105,10 @@ export async function POST(request: Request) {
 
       return NextResponse.json<GenerateResponsePayload>({
         items: [
-          {
+          await addVoiceoverToItem({
             ...comparison,
             analystNote,
-          },
+          }),
         ],
       });
     }
@@ -119,10 +121,10 @@ export async function POST(request: Request) {
           throw new Error('Unexpected non-single template output.');
         }
         const analystNote = await generateSingleAssetAnalystNote(generated);
-        return {
+        return addVoiceoverToItem({
           ...generated,
           analystNote,
-        };
+        });
       }),
     );
 

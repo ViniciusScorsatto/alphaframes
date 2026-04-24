@@ -62,6 +62,29 @@ npm run render
 ```
 
 Generated dashboard renders are saved to `public/renders/`.
+Generated Google TTS voiceovers are saved to `public/tts/`.
+
+## Optional Voiceover Setup
+
+Videos support Google Cloud Text-to-Speech intro voiceovers. Add one of these environment variables before generating videos:
+
+```bash
+GOOGLE_TTS_API_KEY=your_google_text_to_speech_api_key
+```
+
+or:
+
+```bash
+GOOGLE_APPLICATION_CREDENTIALS_JSON='{"type":"service_account", ...}'
+```
+
+or:
+
+```bash
+GOOGLE_APPLICATION_CREDENTIALS=/absolute/path/to/service-account.json
+```
+
+If Google credentials are missing or TTS fails, video generation still works and the background music starts immediately.
 
 ## Supported Templates
 
