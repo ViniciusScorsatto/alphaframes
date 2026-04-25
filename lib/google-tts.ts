@@ -9,6 +9,8 @@ import {formatAssetIdentity, slugify} from '@/lib/utils';
 
 const OUTPUT_DIR = path.join(process.cwd(), 'public', 'tts');
 const GOOGLE_TTS_ENDPOINT = 'https://texttospeech.googleapis.com/v1/text:synthesize';
+const GOOGLE_TTS_VOICE_NAME = 'en-US-Neural2-J';
+const GOOGLE_TTS_SPEAKING_RATE = 0.84;
 
 type VoiceoverSynthesis = {
   audioContent?: string | Buffer | Uint8Array | null;
@@ -91,11 +93,11 @@ async function synthesizeWithClient(text: string): Promise<VoiceoverSynthesis | 
     input: {text},
     voice: {
       languageCode: 'en-US',
-      name: 'en-US-Neural2-J',
+      name: GOOGLE_TTS_VOICE_NAME,
     },
     audioConfig: {
       audioEncoding: 'MP3',
-      speakingRate: 0.95,
+      speakingRate: GOOGLE_TTS_SPEAKING_RATE,
     },
   });
 
@@ -116,11 +118,11 @@ async function synthesizeWithApiKey(text: string): Promise<VoiceoverSynthesis | 
       input: {text},
       voice: {
         languageCode: 'en-US',
-        name: 'en-US-Neural2-J',
+        name: GOOGLE_TTS_VOICE_NAME,
       },
       audioConfig: {
         audioEncoding: 'MP3',
-        speakingRate: 0.95,
+        speakingRate: GOOGLE_TTS_SPEAKING_RATE,
       },
     }),
   });
@@ -149,7 +151,10 @@ export async function addVoiceoverToItem<T extends AnyGeneratedVideoData>(item: 
           ? response.audioContent
           : Buffer.from(response.audioContent);
     const durationFrames = await getMp3DurationFrames(audioBuffer);
-    const hash = createHash('sha1').update(`${item.asset}-${item.template}-${voiceoverText}`).digest('hex').slice(0, 12);
+    const hash = createHash('sha1')
+      .update(`${item.asset}-${item.template}-${voiceoverText}-${GOOGLE_TTS_VOICE_NAME}-${GOOGLE_TTS_SPEAKING_RATE}`)
+      .digest('hex')
+      .slice(0, 12);
     const fileName = `${slugify(item.asset)}-${slugify(item.template)}-${hash}.mp3`;
 
     await fs.mkdir(OUTPUT_DIR, {recursive: true});

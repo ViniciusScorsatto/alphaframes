@@ -1,5 +1,5 @@
 import {AbsoluteFill, Audio, Sequence, staticFile} from 'remotion';
-import {getMusicVolume, toPublicStaticPath, VOICEOVER_VOLUME} from '@/lib/audio-timing';
+import {getMusicVolume, toPublicStaticPath, VOICEOVER_VOLUME} from '../lib/audio-timing';
 import {formatCurrency} from '../lib/utils';
 import type {GeneratedVideoData} from '../types';
 import {getSingleIntroCopy} from './intro-copy';

@@ -1,5 +1,5 @@
 import {AbsoluteFill, Audio, Sequence, staticFile} from 'remotion';
-import {getMusicVolume, toPublicStaticPath, VOICEOVER_VOLUME} from '@/lib/audio-timing';
+import {getMusicVolume, toPublicStaticPath, VOICEOVER_VOLUME} from '../lib/audio-timing';
 import type {ComparisonVideoData} from '../types';
 import {getComparisonIntroCopy} from './intro-copy';
 import {BrandWatermarkScene} from './scenes/brand-watermark-scene';
