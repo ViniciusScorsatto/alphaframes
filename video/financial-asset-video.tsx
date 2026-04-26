@@ -1,5 +1,11 @@
 import {AbsoluteFill, Audio, Sequence, staticFile} from 'remotion';
-import {getMusicVolume, toPublicStaticPath, VOICEOVER_VOLUME} from '../lib/audio-timing';
+import {
+  getMusicDuckEndFrame,
+  MUSIC_DUCKED_VOLUME,
+  MUSIC_NORMAL_VOLUME,
+  toPublicStaticPath,
+  VOICEOVER_VOLUME,
+} from '../lib/audio-timing';
 import {formatCurrency} from '../lib/utils';
 import type {GeneratedVideoData} from '../types';
 import {getSingleIntroCopy} from './intro-copy';
@@ -17,7 +23,7 @@ export function FinancialAssetVideo({data}: {data: GeneratedVideoData}) {
   const introCopy = getSingleIntroCopy(data);
   const introDuration = 172;
   const contentStart = 130;
-  const musicVolume = getMusicVolume(data);
+  const musicDuckEndFrame = getMusicDuckEndFrame(data);
   const voiceoverPath = toPublicStaticPath(data.voiceoverUrl);
 
   return (
@@ -28,7 +34,22 @@ export function FinancialAssetVideo({data}: {data: GeneratedVideoData}) {
       }}
     >
       {voiceoverPath ? <Audio src={staticFile(voiceoverPath)} volume={VOICEOVER_VOLUME} /> : null}
-      <Audio src={staticFile('audio/make-money-money.mp3')} volume={musicVolume} />
+      {musicDuckEndFrame > 0 ? (
+        <>
+          <Sequence durationInFrames={musicDuckEndFrame}>
+            <Audio src={staticFile('audio/make-money-money.mp3')} volume={MUSIC_DUCKED_VOLUME} />
+          </Sequence>
+          <Sequence from={musicDuckEndFrame}>
+            <Audio
+              src={staticFile('audio/make-money-money.mp3')}
+              trimBefore={musicDuckEndFrame}
+              volume={MUSIC_NORMAL_VOLUME}
+            />
+          </Sequence>
+        </>
+      ) : (
+        <Audio src={staticFile('audio/make-money-money.mp3')} volume={MUSIC_NORMAL_VOLUME} />
+      )}
       <AbsoluteFill style={{opacity: 0.14}}>
         <div
           style={{

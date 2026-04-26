@@ -1,5 +1,11 @@
 import {AbsoluteFill, Audio, Sequence, staticFile} from 'remotion';
-import {getMarketMusicVolume, MARKET_VOICEOVER_VOLUME, toPublicStaticPath} from '../lib/audio-timing';
+import {
+  getMusicDuckEndFrame,
+  MARKET_MUSIC_DUCKED_VOLUME,
+  MARKET_MUSIC_NORMAL_VOLUME,
+  MARKET_VOICEOVER_VOLUME,
+  toPublicStaticPath,
+} from '../lib/audio-timing';
 import type {MarketTemplateData} from '@/types';
 import {BrandWatermarkScene} from './scenes/brand-watermark-scene';
 import {CallToActionScene} from './scenes/call-to-action-scene';
@@ -12,7 +18,7 @@ export function MarketInsightVideo({data}: {data: MarketTemplateData}) {
   const contentStart = 112;
   const primaryStatValue = Number((data.supporting_stats[0]?.value ?? '0').replace(/[^0-9.+-]/g, ''));
   const resultTone = primaryStatValue > 0 ? 'gain' : primaryStatValue < 0 ? 'loss' : 'neutral';
-  const musicVolume = getMarketMusicVolume(data);
+  const musicDuckEndFrame = getMusicDuckEndFrame(data);
   const voiceoverPath = toPublicStaticPath(data.voiceoverUrl);
 
   return (
@@ -22,7 +28,22 @@ export function MarketInsightVideo({data}: {data: MarketTemplateData}) {
           'radial-gradient(circle at top, rgba(0,255,136,0.16), transparent 24%), radial-gradient(circle at bottom right, rgba(255,77,77,0.10), transparent 28%), #000',
       }}
     >
-      <Audio src={staticFile('audio/make-money-money.mp3')} volume={musicVolume} />
+      {musicDuckEndFrame > 0 ? (
+        <>
+          <Sequence durationInFrames={musicDuckEndFrame}>
+            <Audio src={staticFile('audio/make-money-money.mp3')} volume={MARKET_MUSIC_DUCKED_VOLUME} />
+          </Sequence>
+          <Sequence from={musicDuckEndFrame}>
+            <Audio
+              src={staticFile('audio/make-money-money.mp3')}
+              trimBefore={musicDuckEndFrame}
+              volume={MARKET_MUSIC_NORMAL_VOLUME}
+            />
+          </Sequence>
+        </>
+      ) : (
+        <Audio src={staticFile('audio/make-money-money.mp3')} volume={MARKET_MUSIC_NORMAL_VOLUME} />
+      )}
       {voiceoverPath ? <Audio src={staticFile(voiceoverPath)} volume={MARKET_VOICEOVER_VOLUME} /> : null}
       <AbsoluteFill style={{opacity: 0.12}}>
         <div

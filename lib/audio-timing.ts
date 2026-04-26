@@ -17,40 +17,15 @@ function hasValidVoiceover(item: Pick<RenderableVideoData, 'voiceoverDurationFra
   return item.voiceoverDurationFrames > 0;
 }
 
-function createMusicVolumeCurve(
-  item: Pick<RenderableVideoData, 'voiceoverDurationFrames' | 'voiceoverUrl'>,
-  normalVolume: number,
-  duckedVolume: number,
-) {
+export function getMusicDuckEndFrame(item: Pick<RenderableVideoData, 'voiceoverDurationFrames' | 'voiceoverUrl'>) {
   if (!hasValidVoiceover(item)) {
-    return normalVolume;
+    return 0;
   }
 
   const voiceoverDurationFrames = item.voiceoverDurationFrames ?? 0;
   const fadeStart = Math.max(0, voiceoverDurationFrames);
   const safeFadeStart = Math.min(fadeStart, MAX_MUSIC_DUCK_FRAMES);
-  const fadeEnd = safeFadeStart + MUSIC_START_BUFFER_FRAMES;
-
-  return (frame: number) => {
-    if (frame <= safeFadeStart) {
-      return duckedVolume;
-    }
-
-    if (frame >= fadeEnd) {
-      return normalVolume;
-    }
-
-    const progress = (frame - safeFadeStart) / MUSIC_START_BUFFER_FRAMES;
-    return duckedVolume + (normalVolume - duckedVolume) * progress;
-  };
-}
-
-export function getMusicVolume(item: Pick<RenderableVideoData, 'voiceoverDurationFrames' | 'voiceoverUrl'>) {
-  return createMusicVolumeCurve(item, MUSIC_NORMAL_VOLUME, MUSIC_DUCKED_VOLUME);
-}
-
-export function getMarketMusicVolume(item: Pick<RenderableVideoData, 'voiceoverDurationFrames' | 'voiceoverUrl'>) {
-  return createMusicVolumeCurve(item, MARKET_MUSIC_NORMAL_VOLUME, MARKET_MUSIC_DUCKED_VOLUME);
+  return safeFadeStart + MUSIC_START_BUFFER_FRAMES;
 }
 
 export function toPublicStaticPath(value?: string) {
