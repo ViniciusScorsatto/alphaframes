@@ -5,6 +5,11 @@ import {renderVideos} from '@/lib/render-video';
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
+const musicFields = {
+  musicTrack: z.enum(['BULL_MARKET_LIFT', 'TICKER_PULSE', 'TICKER_PULSE_ALT']).optional(),
+  musicUrl: z.string().optional(),
+};
+
 const singleItemSchema = z.object({
   kind: z.literal('single'),
   asset: z.string(),
@@ -37,6 +42,7 @@ const singleItemSchema = z.object({
   voiceoverUrl: z.string().optional(),
   voiceoverText: z.string().optional(),
   voiceoverDurationFrames: z.number().optional(),
+  ...musicFields,
 });
 
 const comparisonItemSchema = z.object({
@@ -56,6 +62,7 @@ const comparisonItemSchema = z.object({
   voiceoverUrl: z.string().optional(),
   voiceoverText: z.string().optional(),
   voiceoverDurationFrames: z.number().optional(),
+  ...musicFields,
   primaryAsset: z.object({
     ticker: z.string(),
     assetType: z.enum(['crypto', 'stock', 'etf']),
@@ -118,6 +125,7 @@ const marketItemSchema = z.object({
   voiceoverUrl: z.string().optional(),
   voiceoverText: z.string().optional(),
   voiceoverDurationFrames: z.number().optional(),
+  ...musicFields,
 });
 
 const requestSchema = z.object({

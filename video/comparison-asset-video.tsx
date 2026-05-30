@@ -1,5 +1,6 @@
 import {AbsoluteFill, Audio, Sequence, staticFile} from 'remotion';
 import {
+  getMusicStaticPath,
   getMusicDuckEndFrame,
   MUSIC_DUCKED_VOLUME,
   MUSIC_NORMAL_VOLUME,
@@ -21,6 +22,7 @@ export function ComparisonAssetVideo({data}: {data: ComparisonVideoData}) {
   const introDuration = 172;
   const contentStart = 130;
   const musicDuckEndFrame = getMusicDuckEndFrame(data);
+  const musicPath = getMusicStaticPath(data);
   const voiceoverPath = toPublicStaticPath(data.voiceoverUrl);
 
   return (
@@ -34,18 +36,18 @@ export function ComparisonAssetVideo({data}: {data: ComparisonVideoData}) {
       {musicDuckEndFrame > 0 ? (
         <>
           <Sequence durationInFrames={musicDuckEndFrame}>
-            <Audio src={staticFile('audio/make-money-money.mp3')} volume={MUSIC_DUCKED_VOLUME} />
+            <Audio src={staticFile(musicPath)} volume={MUSIC_DUCKED_VOLUME} />
           </Sequence>
           <Sequence from={musicDuckEndFrame}>
             <Audio
-              src={staticFile('audio/make-money-money.mp3')}
+              src={staticFile(musicPath)}
               trimBefore={musicDuckEndFrame}
               volume={MUSIC_NORMAL_VOLUME}
             />
           </Sequence>
         </>
       ) : (
-        <Audio src={staticFile('audio/make-money-money.mp3')} volume={MUSIC_NORMAL_VOLUME} />
+        <Audio src={staticFile(musicPath)} volume={MUSIC_NORMAL_VOLUME} />
       )}
       <AbsoluteFill style={{opacity: 0.12}}>
         <div

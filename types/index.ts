@@ -28,6 +28,12 @@ export type MarketTemplateId =
 
 export type LookbackWindow = 30 | 90 | 180 | 365 | 'max';
 export type DcaCadence = 'weekly' | 'biweekly' | 'monthly';
+export type MusicTrackId = 'BULL_MARKET_LIFT' | 'TICKER_PULSE' | 'TICKER_PULSE_ALT';
+
+export interface MusicSelection {
+  musicTrack?: MusicTrackId;
+  musicUrl?: string;
+}
 
 export interface HistoricalPricePoint {
   date: string;
@@ -44,7 +50,7 @@ export interface NormalizedAssetData {
   historical: HistoricalPricePoint[];
 }
 
-export interface GeneratedVideoData {
+export interface GeneratedVideoData extends MusicSelection {
   kind: 'single';
   asset: string;
   assetType: AssetType;
@@ -79,7 +85,7 @@ export interface ComparisonTimelinePoint {
   secondaryValue: number;
 }
 
-export interface ComparisonVideoData {
+export interface ComparisonVideoData extends MusicSelection {
   kind: 'comparison';
   asset: string;
   assetName: string;
@@ -121,7 +127,7 @@ export interface ComparisonVideoData {
   comparisonTimeline: ComparisonTimelinePoint[];
 }
 
-export interface MarketTemplateData {
+export interface MarketTemplateData extends MusicSelection {
   kind: 'market';
   asset: string;
   assetName: string;
@@ -186,6 +192,7 @@ export interface GenerateRequestPayload {
   investment: number;
   lookbackWindow?: LookbackWindow;
   dcaCadence?: DcaCadence;
+  musicTrack?: MusicTrackId;
   comparison?: {
     primary: GenerateRequestItem;
     secondary: GenerateRequestItem;
@@ -208,4 +215,45 @@ export interface RenderedVideoResult {
   template: TemplateId;
   fileName: string;
   url: string;
+}
+
+export interface PublishingDraft {
+  summary: string;
+  platforms: {
+    youtube: {
+      title: string;
+      description: string;
+      tags: string[];
+      hashtags: string[];
+      thumbnailNotes: string;
+    };
+  };
+}
+
+export interface PublishingDraftMetadata {
+  channel: {
+    profile: string;
+    language: string;
+    platform: 'youtube-shorts';
+  };
+  video: Record<string, unknown>;
+  sourceJob: AnyGeneratedVideoData;
+  extraContext?: string;
+  outputRenderPath?: string;
+}
+
+export interface PublishingDraftResponsePayload {
+  ok: true;
+  draft: PublishingDraft;
+  metadata: PublishingDraftMetadata;
+  model: string;
+  templateName: string;
+}
+
+export interface YouTubePrivateUploadResponsePayload {
+  ok: true;
+  videoId: string;
+  watchUrl: string;
+  studioUrl: string;
+  privacyStatus: 'private';
 }

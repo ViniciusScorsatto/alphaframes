@@ -1,4 +1,4 @@
-import type {DcaCadence, LookbackWindow, TemplateId} from '@/types';
+import type {DcaCadence, LookbackWindow, MusicTrackId, TemplateId} from '@/types';
 
 export const TEMPLATE_OPTIONS: {label: string; value: TemplateId; description: string}[] = [
   {
@@ -93,3 +93,26 @@ export const DCA_CADENCE_OPTIONS: {label: string; value: DcaCadence}[] = [
   {label: 'Biweekly', value: 'biweekly'},
   {label: 'Monthly', value: 'monthly'},
 ];
+
+export const SOUNDTRACK_OPTIONS: {label: string; value: MusicTrackId; file: string; description: string}[] = [
+  {
+    label: 'Bull Market Lift',
+    value: 'BULL_MARKET_LIFT',
+    file: 'audio/bull-market-lift.mp3',
+    description: 'Current default soundtrack with a brighter market-energy feel.',
+  },
+  {
+    label: 'Ticker Pulse',
+    value: 'TICKER_PULSE',
+    file: 'audio/ticker-pulse.mp3',
+    description: 'Alternative pulse track for faster market edits.',
+  },
+  {
+    label: 'Ticker Pulse Alt',
+    value: 'TICKER_PULSE_ALT',
+    file: 'audio/ticker-pulse-1.mp3',
+    description: 'Second Ticker Pulse version for variation.',
+  },
+];
+
+export const DEFAULT_SOUNDTRACK = SOUNDTRACK_OPTIONS[0];

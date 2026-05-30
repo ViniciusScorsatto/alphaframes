@@ -3,6 +3,11 @@ import {z} from 'zod';
 import {suggestContentIdeas} from '@/lib/ideas';
 import type {AnyGeneratedVideoData} from '@/types';
 
+const musicFields = {
+  musicTrack: z.enum(['BULL_MARKET_LIFT', 'TICKER_PULSE', 'TICKER_PULSE_ALT']).optional(),
+  musicUrl: z.string().optional(),
+};
+
 const requestSchema = z.object({
   item: z.discriminatedUnion('kind', [
     z.object({
@@ -34,6 +39,7 @@ const requestSchema = z.object({
       voiceoverUrl: z.string().optional(),
       voiceoverText: z.string().optional(),
       voiceoverDurationFrames: z.number().optional(),
+      ...musicFields,
       bestBuyDate: z.string().optional(),
       bestBuyPrice: z.number().optional(),
       sharesAccumulated: z.number().optional(),
@@ -55,6 +61,7 @@ const requestSchema = z.object({
       voiceoverUrl: z.string().optional(),
       voiceoverText: z.string().optional(),
       voiceoverDurationFrames: z.number().optional(),
+      ...musicFields,
       primaryAsset: z.object({
         ticker: z.string(),
         assetType: z.enum(['crypto', 'stock', 'etf']),
@@ -116,6 +123,7 @@ const requestSchema = z.object({
       voiceoverUrl: z.string().optional(),
       voiceoverText: z.string().optional(),
       voiceoverDurationFrames: z.number().optional(),
+      ...musicFields,
     }),
   ]),
 });

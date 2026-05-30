@@ -1,6 +1,7 @@
 import {AbsoluteFill, Audio, Sequence, staticFile} from 'remotion';
 import {
   getMusicDuckEndFrame,
+  getMusicStaticPath,
   MARKET_MUSIC_DUCKED_VOLUME,
   MARKET_MUSIC_NORMAL_VOLUME,
   MARKET_VOICEOVER_VOLUME,
@@ -19,6 +20,7 @@ export function MarketInsightVideo({data}: {data: MarketTemplateData}) {
   const primaryStatValue = Number((data.supporting_stats[0]?.value ?? '0').replace(/[^0-9.+-]/g, ''));
   const resultTone = primaryStatValue > 0 ? 'gain' : primaryStatValue < 0 ? 'loss' : 'neutral';
   const musicDuckEndFrame = getMusicDuckEndFrame(data);
+  const musicPath = getMusicStaticPath(data);
   const voiceoverPath = toPublicStaticPath(data.voiceoverUrl);
 
   return (
@@ -31,18 +33,18 @@ export function MarketInsightVideo({data}: {data: MarketTemplateData}) {
       {musicDuckEndFrame > 0 ? (
         <>
           <Sequence durationInFrames={musicDuckEndFrame}>
-            <Audio src={staticFile('audio/make-money-money.mp3')} volume={MARKET_MUSIC_DUCKED_VOLUME} />
+            <Audio src={staticFile(musicPath)} volume={MARKET_MUSIC_DUCKED_VOLUME} />
           </Sequence>
           <Sequence from={musicDuckEndFrame}>
             <Audio
-              src={staticFile('audio/make-money-money.mp3')}
+              src={staticFile(musicPath)}
               trimBefore={musicDuckEndFrame}
               volume={MARKET_MUSIC_NORMAL_VOLUME}
             />
           </Sequence>
         </>
       ) : (
-        <Audio src={staticFile('audio/make-money-money.mp3')} volume={MARKET_MUSIC_NORMAL_VOLUME} />
+        <Audio src={staticFile(musicPath)} volume={MARKET_MUSIC_NORMAL_VOLUME} />
       )}
       {voiceoverPath ? <Audio src={staticFile(voiceoverPath)} volume={MARKET_VOICEOVER_VOLUME} /> : null}
       <AbsoluteFill style={{opacity: 0.12}}>

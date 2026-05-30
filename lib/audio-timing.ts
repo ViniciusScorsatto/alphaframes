@@ -1,4 +1,5 @@
 import type {RenderableVideoData} from '../types';
+import {DEFAULT_SOUNDTRACK} from './constants';
 
 export const MUSIC_START_BUFFER_FRAMES = 6;
 export const MUSIC_NORMAL_VOLUME = 0.14;
@@ -30,4 +31,8 @@ export function getMusicDuckEndFrame(item: Pick<RenderableVideoData, 'voiceoverD
 
 export function toPublicStaticPath(value?: string) {
   return value?.replace(/^\//, '');
+}
+
+export function getMusicStaticPath(item: Pick<RenderableVideoData, 'musicUrl'>) {
+  return toPublicStaticPath(item.musicUrl) ?? DEFAULT_SOUNDTRACK.file;
 }

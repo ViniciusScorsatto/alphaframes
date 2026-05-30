@@ -3,9 +3,10 @@ import {z} from 'zod';
 import {fetchTopCoinsMarketData} from '@/data/coingecko-market';
 import {getAssetData} from '@/data';
 import {generateComparisonAnalystNote, generateSingleAssetAnalystNote} from '@/lib/asset-narrative';
+import {SOUNDTRACK_OPTIONS} from '@/lib/constants';
 import {addVoiceoverToItem} from '@/lib/google-tts';
 import {generateComparisonData, generateMarketTemplateItems, generateTemplateData, isMarketTemplate} from '@/templates';
-import type {GenerateResponsePayload} from '@/types';
+import type {AnyGeneratedVideoData, GenerateResponsePayload, MusicTrackId} from '@/types';
 
 export const runtime = 'nodejs';
 
@@ -13,6 +14,18 @@ const requestItemSchema = z.object({
   ticker: z.string().trim().min(1).regex(/^[A-Za-z0-9.\-]+$/),
   assetType: z.enum(['crypto', 'stock', 'etf']),
 });
+
+const musicTrackSchema = z.enum(['BULL_MARKET_LIFT', 'TICKER_PULSE', 'TICKER_PULSE_ALT']);
+
+function withMusicTrack<T extends AnyGeneratedVideoData>(item: T, musicTrack: MusicTrackId): T {
+  const option = SOUNDTRACK_OPTIONS.find((track) => track.value === musicTrack) ?? SOUNDTRACK_OPTIONS[0];
+
+  return {
+    ...item,
+    musicTrack: option.value,
+    musicUrl: option.file,
+  };
+}
 
 const requestSchema = z
   .object({
@@ -36,6 +49,7 @@ const requestSchema = z
     investment: z.number().positive(),
     lookbackWindow: z.union([z.literal(30), z.literal(90), z.literal(180), z.literal(365), z.literal('max')]).optional(),
     dcaCadence: z.enum(['weekly', 'biweekly', 'monthly']).optional(),
+    musicTrack: musicTrackSchema.optional().default('BULL_MARKET_LIFT'),
     comparison: z
       .object({
         primary: requestItemSchema,
@@ -73,7 +87,7 @@ export async function POST(request: Request) {
     const body = requestSchema.parse(await request.json());
     if (isMarketTemplate(body.template)) {
       const [items, dataset] = await Promise.all([generateMarketTemplateItems(body.template), fetchTopCoinsMarketData()]);
-      const itemsWithVoiceover = await Promise.all(items.map((item) => addVoiceoverToItem(item)));
+      const itemsWithVoiceover = await Promise.all(items.map((item) => addVoiceoverToItem(withMusicTrack(item, body.musicTrack))));
 
       return NextResponse.json<GenerateResponsePayload>({
         items: itemsWithVoiceover,
@@ -104,12 +118,7 @@ export async function POST(request: Request) {
       const analystNote = await generateComparisonAnalystNote(comparison);
 
       return NextResponse.json<GenerateResponsePayload>({
-        items: [
-          await addVoiceoverToItem({
-            ...comparison,
-            analystNote,
-          }),
-        ],
+        items: [await addVoiceoverToItem(withMusicTrack({...comparison, analystNote}, body.musicTrack))],
       });
     }
 
@@ -121,10 +130,7 @@ export async function POST(request: Request) {
           throw new Error('Unexpected non-single template output.');
         }
         const analystNote = await generateSingleAssetAnalystNote(generated);
-        return addVoiceoverToItem({
-          ...generated,
-          analystNote,
-        });
+        return addVoiceoverToItem(withMusicTrack({...generated, analystNote}, body.musicTrack));
       }),
     );
 

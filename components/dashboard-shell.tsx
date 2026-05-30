@@ -5,7 +5,7 @@ import {Player} from '@remotion/player';
 import {ComparisonAssetVideo} from '@/video/comparison-asset-video';
 import {FinancialAssetVideo} from '@/video/financial-asset-video';
 import {MarketInsightVideo} from '@/video/market-insight-video';
-import {DCA_CADENCE_OPTIONS, LOOKBACK_OPTIONS, VIDEO, TEMPLATE_OPTIONS} from '@/lib/constants';
+import {DCA_CADENCE_OPTIONS, LOOKBACK_OPTIONS, SOUNDTRACK_OPTIONS, VIDEO, TEMPLATE_OPTIONS} from '@/lib/constants';
 import {appendSignalLog, getSignalBlocks, getSignalRecommendation, scoreMarketItem} from '@/lib/signal-quality';
 import {Button, Input, Label, Select, Textarea} from '@/components/ui';
 import {cn, formatCurrency, formatDisplayDate, formatPercent} from '@/lib/utils';
@@ -16,8 +16,12 @@ import type {
   GenerateResponsePayload,
   LookbackWindow,
   MarketSignalQuality,
+  MusicTrackId,
+  PublishingDraft,
+  PublishingDraftResponsePayload,
   RenderedVideoResult,
   TemplateId,
+  YouTubePrivateUploadResponsePayload,
 } from '@/types';
 
 const HISTORY_KEY = 'financial-video-studio-history';
@@ -50,15 +54,27 @@ export function DashboardShell() {
   const [template, setTemplate] = useState<TemplateId>('LAST_30_DAYS');
   const [lookbackWindow, setLookbackWindow] = useState<LookbackWindow>(180);
   const [dcaCadence, setDcaCadence] = useState<DcaCadence>('weekly');
+  const [musicTrack, setMusicTrack] = useState<MusicTrackId>('BULL_MARKET_LIFT');
   const [investment, setInvestment] = useState(1000);
   const [generatedItems, setGeneratedItems] = useState<AnyGeneratedVideoData[]>([]);
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [history, setHistory] = useState<AnyGeneratedVideoData[]>([]);
   const [renderResults, setRenderResults] = useState<RenderedVideoResult[]>([]);
+  const [publishingDraft, setPublishingDraft] = useState<PublishingDraft | null>(null);
+  const [publishingExtraContext, setPublishingExtraContext] = useState('');
+  const [copiedField, setCopiedField] = useState<string | null>(null);
+  const [youtubeUpload, setYoutubeUpload] = useState<YouTubePrivateUploadResponsePayload | null>(null);
+  const [isConfigOpen, setIsConfigOpen] = useState(false);
+  const [youtubeRefreshToken, setYoutubeRefreshToken] = useState('');
+  const [youtubeOAuthRedirectUri, setYoutubeOAuthRedirectUri] = useState('');
+  const [youtubeConfigMessage, setYoutubeConfigMessage] = useState<string | null>(null);
   const [ideas, setIdeas] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [isGenerating, startGenerating] = useTransition();
   const [isRendering, startRendering] = useTransition();
+  const [isDrafting, startDrafting] = useTransition();
+  const [isUploadingToYouTube, startUploadingToYouTube] = useTransition();
+  const [isStartingYouTubeOAuth, startYouTubeOAuth] = useTransition();
   const [isSuggesting, startSuggesting] = useTransition();
 
   useEffect(() => {
@@ -72,6 +88,26 @@ export function DashboardShell() {
     window.localStorage.setItem(HISTORY_KEY, JSON.stringify(history.slice(0, 24)));
   }, [history]);
 
+  useEffect(() => {
+    const handleMessage = (event: MessageEvent) => {
+      if (event.origin !== window.location.origin) {
+        return;
+      }
+
+      const data = event.data as {type?: string; refreshToken?: string};
+      if (data.type !== 'alphaframes-youtube-refresh-token' || !data.refreshToken) {
+        return;
+      }
+
+      setYoutubeRefreshToken(data.refreshToken);
+      setYoutubeConfigMessage('Refresh token received. Add it to .env.local and restart the dev server.');
+      setIsConfigOpen(true);
+    };
+
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
+  }, []);
+
   const selectedItem = generatedItems[selectedIndex] ?? null;
   const selectedMarketQuality =
     selectedItem?.kind === 'market' ? selectedItem.signal_quality ?? scoreMarketItem(selectedItem) : null;
@@ -80,6 +116,9 @@ export function DashboardShell() {
   const isMarketTemplate = MARKET_TEMPLATES.includes(template);
   const supportsLookback = ['BEST_DAY_TO_BUY', 'DCA_STRATEGY', 'THEN_VS_NOW', 'COMPARE_ASSETS'].includes(template);
   const isDcaTemplate = template === 'DCA_STRATEGY';
+  const selectedRenderResult = selectedItem
+    ? renderResults.find((result) => result.asset === selectedItem.asset && result.template === selectedItem.template)
+    : undefined;
 
   const handleGenerate = () => {
     setError(null);
@@ -94,6 +133,7 @@ export function DashboardShell() {
               tickers: [],
               template,
               investment,
+              musicTrack,
             }),
           });
           const payload = (await response.json()) as GenerateResponsePayload & {error?: string};
@@ -126,6 +166,8 @@ export function DashboardShell() {
           appendSignalLog(anomalyLogEntries);
           setGeneratedItems(scoredItems);
           setSelectedIndex(0);
+          setPublishingDraft(null);
+          setYoutubeUpload(null);
           setHistory((current) => [...scoredItems, ...current].slice(0, 24));
         } catch (requestError) {
           setError(requestError instanceof Error ? requestError.message : 'Failed to generate market insight.');
@@ -154,6 +196,7 @@ export function DashboardShell() {
                 secondary: {ticker: comparisonSecondaryTicker.trim(), assetType: comparisonSecondaryType},
               },
               lookbackWindow,
+              musicTrack,
             }),
           });
           const payload = (await response.json()) as GenerateResponsePayload & {error?: string};
@@ -164,6 +207,8 @@ export function DashboardShell() {
 
           setGeneratedItems(payload.items);
           setSelectedIndex(0);
+          setPublishingDraft(null);
+          setYoutubeUpload(null);
           setHistory((current) => [...payload.items, ...current].slice(0, 24));
         } catch (requestError) {
           setError(requestError instanceof Error ? requestError.message : 'Failed to generate comparison.');
@@ -190,6 +235,7 @@ export function DashboardShell() {
             investment,
             lookbackWindow: supportsLookback ? lookbackWindow : undefined,
             dcaCadence: isDcaTemplate ? dcaCadence : undefined,
+            musicTrack,
           }),
         });
         const payload = (await response.json()) as GenerateResponsePayload & {error?: string};
@@ -200,6 +246,8 @@ export function DashboardShell() {
 
         setGeneratedItems(payload.items);
         setSelectedIndex(0);
+        setPublishingDraft(null);
+        setYoutubeUpload(null);
         setHistory((current) => [...payload.items, ...current].slice(0, 24));
       } catch (requestError) {
         setError(requestError instanceof Error ? requestError.message : 'Failed to generate data.');
@@ -258,13 +306,136 @@ export function DashboardShell() {
     });
   };
 
+  const handleGeneratePublishingDraft = () => {
+    if (!selectedItem) {
+      return;
+    }
+
+    setError(null);
+    startDrafting(async () => {
+      try {
+        const response = await fetch('/api/publishing/draft', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({
+            job: selectedItem,
+            extraContext: publishingExtraContext,
+            outputRenderPath: selectedRenderResult?.url,
+          }),
+        });
+        const payload = (await response.json()) as PublishingDraftResponsePayload & {error?: string};
+
+        if (!response.ok || !payload.ok) {
+          throw new Error(payload.error ?? 'Failed to generate publishing draft.');
+        }
+
+        setPublishingDraft(payload.draft);
+        setYoutubeUpload(null);
+      } catch (requestError) {
+        setError(requestError instanceof Error ? requestError.message : 'Failed to generate publishing draft.');
+      }
+    });
+  };
+
+  const handlePrivateYouTubeUpload = () => {
+    if (!publishingDraft || !selectedRenderResult) {
+      return;
+    }
+
+    setError(null);
+    startUploadingToYouTube(async () => {
+      try {
+        const response = await fetch('/api/youtube/upload-private', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({
+            renderUrl: selectedRenderResult.url,
+            draft: publishingDraft,
+          }),
+        });
+        const payload = (await response.json()) as YouTubePrivateUploadResponsePayload & {error?: string};
+
+        if (!response.ok || !payload.ok) {
+          throw new Error(payload.error ?? 'Failed to upload private YouTube video.');
+        }
+
+        setYoutubeUpload(payload);
+      } catch (requestError) {
+        setError(requestError instanceof Error ? requestError.message : 'Failed to upload private YouTube video.');
+      }
+    });
+  };
+
+  const handleCopy = async (field: string, value: string) => {
+    await navigator.clipboard.writeText(value);
+    setCopiedField(field);
+    window.setTimeout(() => setCopiedField(null), 1400);
+  };
+
+  const handleGenerateYouTubeRefreshToken = () => {
+    setYoutubeConfigMessage(null);
+    const popup = window.open('', 'alphaframes-youtube-oauth', 'width=720,height=820');
+
+    startYouTubeOAuth(async () => {
+      try {
+        const response = await fetch('/api/youtube/oauth/url');
+        const payload = (await response.json()) as {
+          ok?: boolean;
+          authUrl?: string;
+          redirectUri?: string;
+          error?: string;
+        };
+
+        if (!response.ok || !payload.ok || !payload.authUrl) {
+          throw new Error(payload.error ?? 'Unable to generate YouTube authorization URL.');
+        }
+
+        setYoutubeOAuthRedirectUri(payload.redirectUri ?? '');
+        if (popup) {
+          popup.location.href = payload.authUrl;
+          popup.focus();
+        } else {
+          window.open(payload.authUrl, '_blank');
+        }
+      } catch (requestError) {
+        popup?.close();
+        setYoutubeConfigMessage(
+          requestError instanceof Error ? requestError.message : 'Unable to start YouTube OAuth.',
+        );
+      }
+    });
+  };
+
+  const updateYoutubeDraft = (patch: Partial<PublishingDraft['platforms']['youtube']>) => {
+    setPublishingDraft((current) => {
+      if (!current) {
+        return current;
+      }
+
+      return {
+        ...current,
+        platforms: {
+          youtube: {
+            ...current.platforms.youtube,
+            ...patch,
+          },
+        },
+      };
+    });
+  };
+
   return (
-    <main className="grid-bg min-h-screen px-4 py-6 sm:px-6 lg:px-10">
-      <div className="mx-auto grid max-w-7xl gap-6 lg:grid-cols-[430px_minmax(0,1fr)]">
-        <section className="glass-panel rounded-[32px] p-6 sm:p-8">
+    <main className="grid-bg min-h-screen px-4 py-6 sm:px-6 lg:px-8">
+      <div className="mx-auto grid w-full max-w-[1920px] gap-6 xl:grid-cols-[340px_minmax(0,1fr)] 2xl:grid-cols-[360px_minmax(0,1fr)]">
+        <section className="glass-panel self-start rounded-[32px] p-5 sm:p-6">
           <div className="mb-8">
-            <div className="text-xs uppercase tracking-[0.32em] text-emerald-300">Financial Video Studio</div>
-            <h1 className="mt-3 text-4xl font-bold tracking-[-0.04em] text-white">Generate market-ready shorts.</h1>
+            <div className="flex items-start justify-between gap-4">
+              <div className="text-xs uppercase tracking-[0.32em] text-emerald-300">Financial Video Studio</div>
+              <Button variant="secondary" className="px-3 py-2 text-xs" onClick={() => setIsConfigOpen(true)}>
+                YouTube Config
+              </Button>
+            </div>
+            <h1 className="mt-3 text-3xl font-bold tracking-[-0.04em] text-white">Generate market-ready shorts.</h1>
             <p className="mt-3 max-w-md text-sm leading-6 text-zinc-400">
               Pull live asset data, transform it into reusable JSON, preview vertical video compositions, and render
               MP4 batches locally.
@@ -393,6 +564,20 @@ export function DashboardShell() {
               </p>
             </div>
 
+            <div>
+              <Label>Soundtrack</Label>
+              <Select value={musicTrack} onChange={(event) => setMusicTrack(event.target.value as MusicTrackId)}>
+                {SOUNDTRACK_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </Select>
+              <p className="mt-2 text-xs text-zinc-500">
+                {SOUNDTRACK_OPTIONS.find((option) => option.value === musicTrack)?.description}
+              </p>
+            </div>
+
             {selectedItem?.kind === 'market' && selectedMarketQuality ? (
               <SignalQualityBlock quality={selectedMarketQuality} />
             ) : null}
@@ -461,7 +646,8 @@ export function DashboardShell() {
           </div>
         </section>
 
-        <section className="space-y-6">
+        <section className="min-w-0 space-y-6">
+          <div className="grid gap-6 min-[1320px]:grid-cols-[minmax(360px,620px)_minmax(420px,1fr)]">
           <div className="glass-panel rounded-[32px] p-5 sm:p-6">
             <div className="mb-4 flex items-center justify-between gap-4">
               <div>
@@ -477,7 +663,11 @@ export function DashboardShell() {
                       key={`${item.asset}-${index}`}
                       variant={index === selectedIndex ? 'primary' : 'secondary'}
                       className="px-3 py-2"
-                      onClick={() => setSelectedIndex(index)}
+                      onClick={() => {
+                        setSelectedIndex(index);
+                        setPublishingDraft(null);
+                        setYoutubeUpload(null);
+                      }}
                     >
                       {item.asset}
                     </Button>
@@ -545,7 +735,135 @@ export function DashboardShell() {
             </div>
           </div>
 
-          <div className="grid gap-6 xl:grid-cols-[minmax(0,1.3fr)_360px]">
+          <div className="glass-panel self-start rounded-[32px] p-5 sm:p-6">
+            <div className="mb-4 flex flex-wrap items-start justify-between gap-4">
+              <div>
+                <div className="text-xs uppercase tracking-[0.28em] text-zinc-500">Publishing Draft</div>
+                <div className="mt-1 text-lg font-semibold text-white">
+                  {selectedItem ? `YouTube Shorts copy for ${selectedItem.asset}` : 'Generate a video first'}
+                </div>
+              </div>
+              <Button onClick={handleGeneratePublishingDraft} disabled={isDrafting || !selectedItem}>
+                {isDrafting ? 'Drafting...' : 'Generate Draft'}
+              </Button>
+            </div>
+
+            <div className="grid gap-4 min-[1700px]:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
+              <div>
+                <Label>Extra Context</Label>
+                <Textarea
+                  value={publishingExtraContext}
+                  onChange={(event) => setPublishingExtraContext(event.target.value)}
+                  placeholder="Optional: add angle, target audience, news context, tone, or what the cover should emphasize."
+                  className="min-h-[180px]"
+                />
+                <div className="mt-3 rounded-3xl border border-white/10 bg-black/30 p-4 text-sm leading-6 text-zinc-400">
+                  The fixed YouTube description footer is appended locally after the OpenAI response, so it is not sent
+                  with every generation call.
+                </div>
+                {publishingDraft ? (
+                  <div className="mt-3 rounded-3xl border border-white/10 bg-white/5 p-4">
+                    <div className="text-xs uppercase tracking-[0.24em] text-zinc-500">Draft Summary</div>
+                    <p className="mt-2 text-sm leading-6 text-zinc-300">{publishingDraft.summary}</p>
+                  </div>
+                ) : null}
+                <div className="mt-3 rounded-3xl border border-white/10 bg-white/5 p-4">
+                  <div className="text-xs uppercase tracking-[0.24em] text-zinc-500">Private Upload</div>
+                  <p className="mt-2 text-sm leading-6 text-zinc-400">
+                    Requires a rendered MP4 and YouTube OAuth credentials in the server environment.
+                  </p>
+                  <Button
+                    className="mt-4 w-full"
+                    variant="secondary"
+                    onClick={handlePrivateYouTubeUpload}
+                    disabled={isUploadingToYouTube || !publishingDraft || !selectedRenderResult}
+                    title={!selectedRenderResult ? 'Render the selected video before uploading.' : undefined}
+                  >
+                    {isUploadingToYouTube ? 'Uploading Private...' : 'Publish Private to YouTube'}
+                  </Button>
+                  {youtubeUpload ? (
+                    <div className="mt-4 space-y-2 text-sm">
+                      <div className="text-emerald-300">Uploaded as private.</div>
+                      <a className="block text-sky-300 hover:text-sky-200" href={youtubeUpload.studioUrl} target="_blank">
+                        Open in YouTube Studio
+                      </a>
+                      <a className="block text-sky-300 hover:text-sky-200" href={youtubeUpload.watchUrl} target="_blank">
+                        Open watch page
+                      </a>
+                    </div>
+                  ) : null}
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                {publishingDraft ? (
+                  <>
+                    <PublishingDraftField
+                      label="YouTube Title"
+                      value={publishingDraft.platforms.youtube.title}
+                      copied={copiedField === 'title'}
+                      onChange={(value) => updateYoutubeDraft({title: value})}
+                      onCopy={() => handleCopy('title', publishingDraft.platforms.youtube.title)}
+                    />
+                    <PublishingDraftField
+                      label="YouTube Description"
+                      value={publishingDraft.platforms.youtube.description}
+                      copied={copiedField === 'description'}
+                      multiline
+                      onChange={(value) => updateYoutubeDraft({description: value})}
+                      onCopy={() => handleCopy('description', publishingDraft.platforms.youtube.description)}
+                    />
+                    <PublishingDraftField
+                      label="YouTube Tags"
+                      value={publishingDraft.platforms.youtube.tags.join(', ')}
+                      copied={copiedField === 'tags'}
+                      onChange={(value) =>
+                        updateYoutubeDraft({
+                          tags: value
+                            .split(',')
+                            .map((tag) => tag.trim())
+                            .filter(Boolean),
+                        })
+                      }
+                      onCopy={() => handleCopy('tags', publishingDraft.platforms.youtube.tags.join(', '))}
+                    />
+                    <PublishingDraftField
+                      label="YouTube Hashtags"
+                      value={publishingDraft.platforms.youtube.hashtags.join(' ')}
+                      copied={copiedField === 'hashtags'}
+                      onChange={(value) =>
+                        updateYoutubeDraft({
+                          hashtags: value
+                            .split(/\s+/)
+                            .map((hashtag) => hashtag.trim())
+                            .filter(Boolean),
+                        })
+                      }
+                      onCopy={() => handleCopy('hashtags', publishingDraft.platforms.youtube.hashtags.join(' '))}
+                    />
+                    <PublishingDraftField
+                      label="Thumbnail / Cover Notes"
+                      value={publishingDraft.platforms.youtube.thumbnailNotes}
+                      copied={copiedField === 'thumbnailNotes'}
+                      multiline
+                      onChange={(value) => updateYoutubeDraft({thumbnailNotes: value})}
+                      onCopy={() =>
+                        handleCopy('thumbnailNotes', publishingDraft.platforms.youtube.thumbnailNotes)
+                      }
+                    />
+                  </>
+                ) : (
+                  <div className="flex min-h-[360px] items-center justify-center rounded-3xl border border-white/10 bg-black/30 p-6 text-center text-sm leading-6 text-zinc-500">
+                    Generate a publishing draft to review editable title, description, tags, hashtags, and cover notes.
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          </div>
+
+          <div className="grid gap-6 2xl:grid-cols-[minmax(0,1.3fr)_360px]">
             <div className="glass-panel rounded-[32px] p-6">
               <div className="mb-4 text-xs uppercase tracking-[0.28em] text-zinc-500">Structured JSON Output</div>
               <pre className="max-h-[560px] overflow-auto rounded-[24px] border border-white/10 bg-black/60 p-4 text-xs leading-6 text-zinc-200">
@@ -627,6 +945,8 @@ export function DashboardShell() {
                     onClick={() => {
                       setGeneratedItems([item]);
                       setSelectedIndex(0);
+                      setPublishingDraft(null);
+                      setYoutubeUpload(null);
                     }}
                   >
                     <div className="text-xs uppercase tracking-[0.2em] text-zinc-500">{item.template}</div>
@@ -652,7 +972,151 @@ export function DashboardShell() {
           </div>
         </section>
       </div>
+      {isConfigOpen ? (
+        <YouTubeConfigModal
+          copiedField={copiedField}
+          isStarting={isStartingYouTubeOAuth}
+          message={youtubeConfigMessage}
+          redirectUri={youtubeOAuthRedirectUri}
+          refreshToken={youtubeRefreshToken}
+          onClose={() => setIsConfigOpen(false)}
+          onCopy={handleCopy}
+          onGenerate={handleGenerateYouTubeRefreshToken}
+        />
+      ) : null}
     </main>
+  );
+}
+
+function YouTubeConfigModal({
+  copiedField,
+  isStarting,
+  message,
+  redirectUri,
+  refreshToken,
+  onClose,
+  onCopy,
+  onGenerate,
+}: {
+  copiedField: string | null;
+  isStarting: boolean;
+  message: string | null;
+  redirectUri: string;
+  refreshToken: string;
+  onClose: () => void;
+  onCopy: (field: string, value: string) => void;
+  onGenerate: () => void;
+}) {
+  const envSnippet = refreshToken ? `YOUTUBE_REFRESH_TOKEN=${refreshToken}` : '';
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-start justify-center overflow-auto bg-black/70 px-4 py-8 backdrop-blur-sm">
+      <div className="w-full max-w-2xl rounded-[32px] border border-white/12 bg-zinc-950 p-6 shadow-2xl">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <div className="text-xs uppercase tracking-[0.28em] text-emerald-300">YouTube Config</div>
+            <h2 className="mt-2 text-2xl font-bold tracking-[-0.04em] text-white">Generate refresh token</h2>
+          </div>
+          <Button variant="secondary" className="px-3 py-2" onClick={onClose}>
+            Close
+          </Button>
+        </div>
+
+        <div className="mt-6 space-y-4">
+          <div className="rounded-3xl border border-white/10 bg-white/5 p-4 text-sm leading-6 text-zinc-300">
+            This opens Google consent for the YouTube upload scope. After approval, copy the refresh token into
+            <span className="text-white"> .env.local </span>
+            as <span className="text-white">YOUTUBE_REFRESH_TOKEN</span>, then restart the dev server.
+          </div>
+
+          <Button onClick={onGenerate} disabled={isStarting}>
+            {isStarting ? 'Opening Google...' : 'Generate YouTube Refresh Token'}
+          </Button>
+
+          {message ? (
+            <div className="rounded-2xl border border-emerald-400/20 bg-emerald-400/10 px-4 py-3 text-sm leading-6 text-emerald-100">
+              {message}
+            </div>
+          ) : null}
+
+          {redirectUri ? (
+            <div>
+              <Label>Redirect URI</Label>
+              <div className="rounded-2xl border border-white/10 bg-black/40 px-4 py-3 text-sm text-zinc-300">
+                {redirectUri}
+              </div>
+              <p className="mt-2 text-xs leading-5 text-zinc-500">
+                This must be listed in your Google OAuth client authorized redirect URIs.
+              </p>
+            </div>
+          ) : null}
+
+          {refreshToken ? (
+            <>
+              <PublishingDraftField
+                label="Refresh Token"
+                value={refreshToken}
+                copied={copiedField === 'youtubeRefreshToken'}
+                multiline
+                onChange={() => undefined}
+                onCopy={() => onCopy('youtubeRefreshToken', refreshToken)}
+              />
+              <div>
+                <div className="mb-2 flex items-center justify-between gap-3">
+                  <Label>.env.local Snippet</Label>
+                  <Button
+                    variant="secondary"
+                    className="px-3 py-2 text-xs"
+                    onClick={() => onCopy('youtubeEnvSnippet', envSnippet)}
+                  >
+                    {copiedField === 'youtubeEnvSnippet' ? 'Copied' : 'Copy'}
+                  </Button>
+                </div>
+                <pre className="overflow-auto rounded-2xl border border-white/10 bg-black/60 p-4 text-xs leading-6 text-emerald-200">
+                  {envSnippet}
+                </pre>
+              </div>
+            </>
+          ) : null}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function PublishingDraftField({
+  label,
+  value,
+  copied,
+  multiline = false,
+  onChange,
+  onCopy,
+}: {
+  label: string;
+  value: string;
+  copied: boolean;
+  multiline?: boolean;
+  onChange: (value: string) => void;
+  onCopy: () => void;
+}) {
+  return (
+    <div>
+      <div className="mb-2 flex items-center justify-between gap-3">
+        <Label>{label}</Label>
+        <Button variant="secondary" className="px-3 py-2 text-xs" onClick={onCopy}>
+          {copied ? 'Copied' : 'Copy'}
+        </Button>
+      </div>
+      {multiline ? (
+        <Textarea
+          value={value}
+          onChange={(event) => onChange(event.target.value)}
+          className="min-h-[150px]"
+        />
+      ) : (
+        <Input value={value} onChange={(event) => onChange(event.target.value)} />
+      )}
+    </div>
   );
 }
 
