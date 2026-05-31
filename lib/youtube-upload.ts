@@ -85,19 +85,26 @@ export async function uploadPrivateYouTubeShort({
     status: {
       privacyStatus: 'private',
       selfDeclaredMadeForKids: false,
+      containsSyntheticMedia: false,
+    },
+    paidProductPlacementDetails: {
+      hasPaidProductPlacement: false,
     },
   };
 
-  const sessionResponse = await fetch(`${YOUTUBE_UPLOAD_URL}?uploadType=resumable&part=snippet,status`, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-      'Content-Type': 'application/json; charset=UTF-8',
-      'X-Upload-Content-Length': String(fileStat.size),
-      'X-Upload-Content-Type': 'video/mp4',
+  const sessionResponse = await fetch(
+    `${YOUTUBE_UPLOAD_URL}?uploadType=resumable&part=snippet,status,paidProductPlacementDetails&notifySubscribers=false`,
+    {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        'Content-Type': 'application/json; charset=UTF-8',
+        'X-Upload-Content-Length': String(fileStat.size),
+        'X-Upload-Content-Type': 'video/mp4',
+      },
+      body: JSON.stringify(metadata),
     },
-    body: JSON.stringify(metadata),
-  });
+  );
 
   const uploadUrl = sessionResponse.headers.get('location');
   if (!sessionResponse.ok || !uploadUrl) {
