@@ -13,10 +13,33 @@ import {CallToActionScene} from './scenes/call-to-action-scene';
 import {DisclaimerScene} from './scenes/disclaimer-scene';
 import {LogoIntroScene} from './scenes/logo-intro-scene';
 import {MarketInsightSummaryScene} from './scenes/market-insight-summary-scene';
+import {SHORT_TIMING} from './timing';
+
+function getMarketIntroCopy(data: MarketTemplateData) {
+  const ticker = data.signal_metadata?.coinTicker ?? data.asset;
+  const firstStat = data.supporting_stats[0];
+  const volumeStat = data.supporting_stats.find((stat) => stat.label.toLowerCase().includes('volume'));
+  const resultTease = volumeStat ? `${volumeStat.label}: ${volumeStat.value}` : (firstStat?.value ?? 'Market signal');
+
+  if (data.template === 'SILENT_ACCUMULATION' && firstStat) {
+    return {
+      hookTitle: `${ticker} ${firstStat.value} but volume stayed active`,
+      resultTease,
+      hookSubtitle: 'Silent accumulation is a signal, not confirmation.',
+    };
+  }
+
+  return {
+    hookTitle: data.headline,
+    resultTease,
+    hookSubtitle: data.narrative_text,
+  };
+}
 
 export function MarketInsightVideo({data}: {data: MarketTemplateData}) {
-  const introDuration = 148;
-  const contentStart = 112;
+  const introDuration = SHORT_TIMING.introDuration;
+  const contentStart = SHORT_TIMING.contentStart;
+  const introCopy = getMarketIntroCopy(data);
   const primaryStatValue = Number((data.supporting_stats[0]?.value ?? '0').replace(/[^0-9.+-]/g, ''));
   const resultTone = primaryStatValue > 0 ? 'gain' : primaryStatValue < 0 ? 'loss' : 'neutral';
   const musicDuckEndFrame = getMusicDuckEndFrame(data);
@@ -60,10 +83,10 @@ export function MarketInsightVideo({data}: {data: MarketTemplateData}) {
       </AbsoluteFill>
       <Sequence from={0} durationInFrames={introDuration}>
         <LogoIntroScene
-          hookTitle={data.headline}
-          resultTease={data.supporting_stats[0]?.value ?? 'CoinGecko market read'}
+          hookTitle={introCopy.hookTitle}
+          resultTease={introCopy.resultTease}
           resultTone={resultTone}
-          hookSubtitle={data.narrative_text}
+          hookSubtitle={introCopy.hookSubtitle}
           durationInFrames={introDuration}
         />
       </Sequence>
@@ -73,8 +96,12 @@ export function MarketInsightVideo({data}: {data: MarketTemplateData}) {
       <Sequence from={contentStart}>
         <MarketInsightSummaryScene data={data} />
       </Sequence>
-      <CallToActionScene />
-      <DisclaimerScene startFrame={0} />
+      <CallToActionScene
+        title={`Save this ${data.signal_metadata?.coinTicker ?? 'market'} breakdown`}
+        subtitle="Crypto market anomalies in one visual."
+        footer="Follow AlphaFrames"
+      />
+      <DisclaimerScene startFrame={SHORT_TIMING.disclaimerStart} />
     </AbsoluteFill>
   );
 }

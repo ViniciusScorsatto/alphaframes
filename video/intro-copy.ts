@@ -36,16 +36,15 @@ export function getSingleIntroCopy(data: GeneratedVideoData) {
   switch (data.template) {
     case 'BEST_DAY_TO_BUY':
       return {
-        hookTitle: `Did you miss the best day to buy ${assetLabel}?`,
+        hookTitle: `${assetLabel} low point changed the result`,
         resultTease: `${investmentLabel} would be ${resultValueLabel}`,
         resultTone: getToneFromReturn(data.return),
         hookSubtitle: 'We found the low, then tracked what happened next.',
       };
     case 'DCA_STRATEGY': {
       const cadence = data.contextLabel.split(' ')[0] ?? 'Recurring';
-      const cadenceLabel = cadence.toLowerCase();
       return {
-        hookTitle: `What if you bought ${assetLabel} every ${cadenceLabel}?`,
+        hookTitle: `${cadence} DCA into ${assetLabel}`,
         resultTease: `${data.hookLabel} | ${returnLabel}`,
         resultTone: getToneFromReturn(data.return),
         hookSubtitle: `${cadence} DCA, one window, and the full payoff story.`,
@@ -53,14 +52,14 @@ export function getSingleIntroCopy(data: GeneratedVideoData) {
     }
     case 'THEN_VS_NOW':
       return {
-        hookTitle: `If you bought ${assetLabel} back then...`,
+        hookTitle: `${assetLabel} then vs now`,
         resultTease: `${investmentLabel} is now ${resultValueLabel}`,
         resultTone: getToneFromReturn(data.return),
         hookSubtitle: 'A before-vs-now snapshot with the chart as proof.',
       };
     case 'LAST_1_YEAR':
       return {
-        hookTitle: `What happened to ${investmentLabel} in ${assetLabel}?`,
+        hookTitle: `${assetLabel} moved ${returnLabel} in 1 year`,
         resultTease: `${returnLabel} | now ${resultValueLabel}`,
         resultTone: getToneFromReturn(data.return),
         hookSubtitle: 'One year of price action, timing, and return in one quick story.',
@@ -68,7 +67,7 @@ export function getSingleIntroCopy(data: GeneratedVideoData) {
     case 'LAST_30_DAYS':
     default:
       return {
-        hookTitle: `What happened to ${investmentLabel} in ${assetLabel} this month?`,
+        hookTitle: `${assetLabel} moved ${returnLabel} in 30 days`,
         resultTease: `${returnLabel} | now ${resultValueLabel}`,
         resultTone: getToneFromReturn(data.return),
         hookSubtitle: 'The result first, then the graph that explains it.',
@@ -80,9 +79,10 @@ export function getComparisonIntroCopy(data: ComparisonVideoData) {
   const winner = data.winnerTicker === data.primaryAsset.ticker ? data.primaryAsset : data.secondaryAsset;
   const otherAsset = winner.ticker === data.primaryAsset.ticker ? data.secondaryAsset : data.primaryAsset;
   const winnerValueLabel = formatCurrency(winner.valueToday, data.currency);
+  const spreadLabel = formatPercent(data.deltaReturn);
 
   return {
-    hookTitle: `${data.primaryAsset.ticker} vs ${data.secondaryAsset.ticker}: who actually won?`,
+    hookTitle: `${winner.ticker} beat ${otherAsset.ticker} by ${spreadLabel}`,
     resultTease: `${winner.ticker} finished at ${winnerValueLabel}`,
     resultTone: 'gain' as const,
     hookSubtitle: `${formatAssetIdentity(data.primaryAsset.ticker, data.primaryAsset.name)} (${toAssetTypeLabel(data.primaryAsset.assetType)}) vs ${formatAssetIdentity(data.secondaryAsset.ticker, data.secondaryAsset.name)} (${toAssetTypeLabel(data.secondaryAsset.assetType)})`,

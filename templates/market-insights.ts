@@ -616,7 +616,7 @@ function mapSignalToMarketItem(
     template === 'SILENT_ACCUMULATION'
       ? [
           {label: '24h change', value: formatPercent(Number(signal.data_points.price_change_24h ?? 0))},
-          {label: 'Volume ratio', value: String(signal.data_points.volume_ratio ?? '0')},
+          {label: 'Turnover Ratio', value: String(signal.data_points.volume_ratio ?? '0')},
           {label: '24h volume', value: `$${Number(signal.data_points.volume_usd ?? 0).toLocaleString('en-US')}`},
         ]
       : template === 'EXHAUSTION_MOVE'

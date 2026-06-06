@@ -16,11 +16,12 @@ import {ComparisonHeaderScene} from './scenes/comparison-header-scene';
 import {ComparisonStatsScene} from './scenes/comparison-stats-scene';
 import {DisclaimerScene} from './scenes/disclaimer-scene';
 import {LogoIntroScene} from './scenes/logo-intro-scene';
+import {SHORT_TIMING} from './timing';
 
 export function ComparisonAssetVideo({data}: {data: ComparisonVideoData}) {
   const introCopy = getComparisonIntroCopy(data);
-  const introDuration = 172;
-  const contentStart = 130;
+  const introDuration = SHORT_TIMING.introDuration;
+  const contentStart = SHORT_TIMING.contentStart;
   const musicDuckEndFrame = getMusicDuckEndFrame(data);
   const musicPath = getMusicStaticPath(data);
   const voiceoverPath = toPublicStaticPath(data.voiceoverUrl);
@@ -82,8 +83,12 @@ export function ComparisonAssetVideo({data}: {data: ComparisonVideoData}) {
       <Sequence from={contentStart}>
         <ComparisonStatsScene data={data} />
       </Sequence>
-      <CallToActionScene />
-      <DisclaimerScene />
+      <CallToActionScene
+        title="Which side would you own?"
+        subtitle={`${data.primaryAsset.ticker} vs ${data.secondaryAsset.ticker}`}
+        footer="Follow AlphaFrames"
+      />
+      <DisclaimerScene startFrame={SHORT_TIMING.disclaimerStart} />
     </AbsoluteFill>
   );
 }

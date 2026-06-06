@@ -14,13 +14,13 @@ const FLOW_SCENARIO_CONTEXT: Record<FlowScenario, string> = {
   upside_expansion:
     'Context: Price advancing with elevated turnover — consistent with broad participation rather than a thin, low-conviction advance.',
   supply_compression:
-    'Context: Price flat with elevated turnover — consistent with a balanced structure where activity is elevated but price has not yet responded directionally.',
+    'Context: Muted price move with elevated turnover — consistent with a balanced structure where activity is elevated but price has not yet followed through directionally.',
   low_conviction_decline:
     'Context: Price lower on contained volume — consistent with a passive decline without signs of broad selling pressure.',
   low_conviction_rally:
     'Context: Price higher on contained volume — consistent with a thin advance without signs of broad participation.',
   range_contraction:
-    'Context: Price and volume both compressed — consistent with a low-activity, range-bound structure.',
+    'Context: Price move and volume both compressed — consistent with a low-activity, range-bound structure.',
 };
 
 type MarketScenario = 'compression' | 'expansion' | 'rotation' | 'neutral';
@@ -122,7 +122,7 @@ type AccumulationScenario = 'silent_accumulation' | 'volume_without_bias';
 
 const ACCUMULATION_SCENARIO_CONTEXT: Record<AccumulationScenario, string> = {
   silent_accumulation:
-    'Context: Price flat 24h, slight upward bias over 7 days, volume well above baseline — elevated activity without a visible price response, historically observed before directional moves.',
+    'Context: Muted 24h price move, slight upward bias over 7 days, volume well above baseline — elevated activity without clear directional follow-through.',
   volume_without_bias:
     'Context: Elevated volume with no directional bias over 7 days — consistent with a balanced structure rather than one-sided activity.',
 };
@@ -145,7 +145,7 @@ const PATTERN_SCENARIO_CONTEXT: Record<PatternScenario, string> = {
   selloff_expansion:
     'Context: Price declining with high turnover — consistent with broad selling activity rather than a passive, low-volume fade.',
   compression:
-    'Context: Flat price with elevated turnover — consistent with a balanced structure; similar setups have historically resolved directionally.',
+    'Context: Muted price move with elevated turnover — consistent with a balanced structure; similar setups have historically resolved directionally.',
   no_clear_pattern:
     'Context: No dominant price/volume structure present — interpret conservatively based on the historical case data alone.',
 };
@@ -472,7 +472,7 @@ export async function generateSilentAccumulationNarrative(data: {
   signalThreshold: number;
 }): Promise<string> {
   const volPct = (data.volumeRatio * 100).toFixed(2);
-  const fallback = `${data.coinName} is recording elevated volume at ${volPct}% of market cap while price holds nearly flat — a divergence between activity and price without a visible directional response.`;
+  const fallback = `${data.coinName} is recording elevated turnover at ${volPct}% of market cap while price shows limited directional follow-through — a divergence between activity and price.`;
 
   const accumulationScenario = classifyAccumulationScenario(data.change24h, data.change7d, data.volumeRatio);
   const flowScenario = classifyFlowScenario(data.change24h, data.volumeRatio);
@@ -481,12 +481,12 @@ export async function generateSilentAccumulationNarrative(data: {
   return generateNarrative(
     `Silent accumulation signal:
 - Coin: ${data.coinName}
-- 24h price change: ${data.change24h.toFixed(2)}% (near flat)
+- 24h price change: ${data.change24h.toFixed(2)}% (muted price move)
 - 7d price change: ${data.change7d.toFixed(2)}%
 - Volume as % of market cap: ${volPct}%
 - Signal threshold: ${(data.signalThreshold * 100).toFixed(2)}%
 
-Describe in 1-2 sentences what this volume and price structure reflects in market terms.`,
+Describe in 1-2 sentences what this turnover and price structure reflects in market terms. Do not call the price flat if the 24h change is visibly negative or positive.`,
     fallback,
     scenarioContext,
   );

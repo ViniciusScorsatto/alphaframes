@@ -8,7 +8,7 @@ export function ComparisonStatsScene({data}: {data: ComparisonVideoData}) {
   const primaryPerformanceColor = data.primaryAsset.return >= 0 ? videoTheme.gain : videoTheme.loss;
   const secondaryPerformanceColor = data.secondaryAsset.return >= 0 ? videoTheme.gain : videoTheme.loss;
   const winnerColor = data.deltaReturn > 0 ? videoTheme.gain : videoTheme.secondary;
-  const opacity = interpolate(frame, [152, 178], [0, 1], {
+  const opacity = interpolate(frame, [146, 164], [0, 1], {
     extrapolateLeft: 'clamp',
     extrapolateRight: 'clamp',
   });
@@ -40,14 +40,41 @@ export function ComparisonStatsScene({data}: {data: ComparisonVideoData}) {
           padding: '28px 30px',
         }}
       >
-        <div style={{fontSize: 36, color: winnerColor, textTransform: 'uppercase', letterSpacing: '0.12em'}}>
+        <div
+          style={{
+            fontSize: 34,
+            color: winnerColor,
+            textTransform: 'uppercase',
+            letterSpacing: '0.12em',
+            fontFamily: videoTheme.fonts.ui,
+            fontWeight: 600,
+          }}
+        >
           {data.resultLabel}
         </div>
-        <div style={{marginTop: 14, fontSize: 34, color: videoTheme.foreground, lineHeight: 1.3}}>
+        <div
+          style={{
+            marginTop: 14,
+            fontSize: 34,
+            color: videoTheme.foreground,
+            lineHeight: 1.24,
+            fontFamily: videoTheme.fonts.ui,
+            fontWeight: 500,
+          }}
+        >
           {data.insights[0]}
         </div>
         {data.analystNote ? (
-          <div style={{marginTop: 14, fontSize: 26, color: videoTheme.secondary, lineHeight: 1.35}}>
+          <div
+            style={{
+              marginTop: 14,
+              fontSize: 26,
+              color: videoTheme.secondary,
+              lineHeight: 1.3,
+              fontFamily: videoTheme.fonts.ui,
+              fontWeight: 500,
+            }}
+          >
             {data.analystNote}
           </div>
         ) : null}
@@ -78,9 +105,33 @@ function Card({
         padding: '26px 28px',
       }}
     >
-      <div style={{fontSize: 30, color: assetColor, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em'}}>{title}</div>
-      <div style={{marginTop: 14, fontSize: 58, color: '#fff', fontWeight: 900, letterSpacing: '-0.05em'}}>{value}</div>
-      <div style={{marginTop: 10, fontSize: 34, color: performanceColor}}>{subvalue}</div>
+      <div
+        style={{
+          fontSize: 30,
+          color: assetColor,
+          fontWeight: 600,
+          textTransform: 'uppercase',
+          letterSpacing: '0.1em',
+          fontFamily: videoTheme.fonts.ui,
+        }}
+      >
+        {title}
+      </div>
+      <div
+        style={{
+          marginTop: 14,
+          fontSize: 54,
+          color: '#fff',
+          fontWeight: 700,
+          letterSpacing: '-0.02em',
+          fontFamily: videoTheme.fonts.metric,
+        }}
+      >
+        {value}
+      </div>
+      <div style={{marginTop: 10, fontSize: 34, color: performanceColor, fontFamily: videoTheme.fonts.metric}}>
+        {subvalue}
+      </div>
     </div>
   );
 }

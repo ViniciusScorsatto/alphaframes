@@ -1,5 +1,7 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
+import {execFile} from 'node:child_process';
+import {promisify} from 'node:util';
 import {bundle} from '@remotion/bundler';
 import {renderMedia, selectComposition} from '@remotion/renderer';
 import type {RenderableVideoData, RenderedVideoResult} from '@/types';
@@ -8,6 +10,7 @@ import {slugify} from '@/lib/utils';
 
 const REMOTION_ENTRY = path.join(process.cwd(), 'remotion', 'index.ts');
 const OUTPUT_DIR = path.join(process.cwd(), 'public', 'renders');
+const execFileAsync = promisify(execFile);
 
 let bundleLocationPromise: Promise<string> | null = null;
 
@@ -29,6 +32,27 @@ async function getBundleLocation() {
   }
 
   return bundleLocationPromise;
+}
+
+async function trimToVideoDuration(outputLocation: string) {
+  const durationSeconds = (VIDEO.durationInFrames / VIDEO.fps).toFixed(3);
+  const parsed = path.parse(outputLocation);
+  const trimmedLocation = path.join(parsed.dir, `${parsed.name}.trimmed${parsed.ext}`);
+
+  await execFileAsync('ffmpeg', [
+    '-i',
+    outputLocation,
+    '-t',
+    durationSeconds,
+    '-c:v',
+    'copy',
+    '-c:a',
+    'aac',
+    trimmedLocation,
+    '-y',
+  ]);
+
+  await fs.rename(trimmedLocation, outputLocation);
 }
 
 export async function renderVideos(items: RenderableVideoData[]): Promise<RenderedVideoResult[]> {
@@ -65,6 +89,7 @@ export async function renderVideos(items: RenderableVideoData[]): Promise<Render
         outputLocation,
         inputProps: {data: item},
       });
+      await trimToVideoDuration(outputLocation);
 
       return {
         asset: item.asset,

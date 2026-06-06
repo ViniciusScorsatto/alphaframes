@@ -81,7 +81,7 @@ export function TimelineScene({
               textAnchor="middle"
               fill={videoTheme.loss}
               fontSize="34"
-              fontFamily="sans-serif"
+              fontFamily={videoTheme.fonts.ui}
               fontWeight="800"
             >
               Best buy
@@ -92,7 +92,7 @@ export function TimelineScene({
               textAnchor="middle"
               fill={videoTheme.foreground}
               fontSize="28"
-              fontFamily="sans-serif"
+              fontFamily={videoTheme.fonts.ui}
               fontWeight="600"
             >
               {formatDisplayDate(bestBuyPoint.date)}
@@ -107,7 +107,7 @@ export function TimelineScene({
               y={420 + startPoint.y * 520 - 34}
               fill={videoTheme.foreground}
               fontSize="34"
-              fontFamily="sans-serif"
+              fontFamily={videoTheme.fonts.metric}
               fontWeight="700"
             >
               {formatCurrency(startPoint.price, currency)}
@@ -123,7 +123,7 @@ export function TimelineScene({
               textAnchor="end"
               fill={videoTheme.gain}
               fontSize="34"
-              fontFamily="sans-serif"
+              fontFamily={videoTheme.fonts.metric}
               fontWeight="700"
             >
               {formatCurrency(endPoint.price, currency)}

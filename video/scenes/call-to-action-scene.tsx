@@ -1,10 +1,19 @@
 import {AbsoluteFill, interpolate, spring, useCurrentFrame, useVideoConfig} from 'remotion';
 import {videoTheme} from '../theme';
+import {SHORT_TIMING} from '../timing';
 
-export function CallToActionScene() {
+export function CallToActionScene({
+  title = 'Follow AlphaFrames',
+  subtitle = 'Market data in one visual.',
+  footer = 'Save this video',
+}: {
+  title?: string;
+  subtitle?: string;
+  footer?: string;
+}) {
   const frame = useCurrentFrame();
-  const {fps, durationInFrames} = useVideoConfig();
-  const ctaStart = Math.max(durationInFrames - 92, 0);
+  const {fps} = useVideoConfig();
+  const ctaStart = SHORT_TIMING.ctaStart;
   const backgroundOpacity = interpolate(frame, [ctaStart, ctaStart + 1], [0, 1], {
     extrapolateLeft: 'clamp',
     extrapolateRight: 'clamp',
@@ -14,15 +23,15 @@ export function CallToActionScene() {
     fps,
     config: {damping: 18, stiffness: 120},
   });
-  const contentOpacity = interpolate(frame, [ctaStart + 8, ctaStart + 28], [0, 1], {
+  const contentOpacity = interpolate(frame, [ctaStart + 4, ctaStart + 12], [0, 1], {
     extrapolateLeft: 'clamp',
     extrapolateRight: 'clamp',
   });
-  const glowOpacity = interpolate(frame, [ctaStart, ctaStart + 16, ctaStart + 64], [0, 0.85, 0.65], {
+  const glowOpacity = interpolate(frame, [ctaStart, ctaStart + 8, ctaStart + 36], [0, 0.85, 0.65], {
     extrapolateLeft: 'clamp',
     extrapolateRight: 'clamp',
   });
-  const panelOpacity = interpolate(frame, [ctaStart, ctaStart + 14, durationInFrames], [0, 1, 1], {
+  const panelOpacity = interpolate(frame, [ctaStart, ctaStart + 8, SHORT_TIMING.durationInFrames], [0, 1, 1], {
     extrapolateLeft: 'clamp',
     extrapolateRight: 'clamp',
   });
@@ -90,6 +99,7 @@ export function CallToActionScene() {
             fontWeight: 800,
             letterSpacing: '0.14em',
             textTransform: 'uppercase',
+            fontFamily: videoTheme.fonts.ui,
           }}
         >
           AlphaFrames
@@ -98,29 +108,30 @@ export function CallToActionScene() {
           style={{
             marginTop: 30,
             color: '#07140d',
-            fontSize: 112,
-            lineHeight: 0.9,
-            fontWeight: 900,
-            letterSpacing: '-0.07em',
+            fontSize: 72,
+            lineHeight: 0.98,
+            fontWeight: 700,
+            letterSpacing: '-0.03em',
+            textTransform: 'uppercase',
             maxWidth: 920,
             textWrap: 'balance',
+            fontFamily: videoTheme.fonts.hook,
           }}
         >
-          Follow for more
-          <br />
-          market breakdowns
+          {title}
         </div>
         <div
           style={{
             marginTop: 26,
             color: 'rgba(7,20,13,0.66)',
-            fontSize: 42,
+            fontSize: 36,
             lineHeight: 1.2,
-            fontWeight: 600,
+            fontWeight: 500,
             maxWidth: 860,
+            fontFamily: videoTheme.fonts.ui,
           }}
         >
-          Daily investing visuals, chart stories, and head-to-head comparisons.
+          {subtitle}
         </div>
         <div
           style={{
@@ -134,13 +145,14 @@ export function CallToActionScene() {
           style={{
             marginTop: 28,
             color: 'rgba(7,20,13,0.5)',
-            fontSize: 28,
+            fontSize: 24,
             fontWeight: 700,
             letterSpacing: '0.08em',
             textTransform: 'uppercase',
+            fontFamily: videoTheme.fonts.ui,
           }}
         >
-          Save this video and follow AlphaFrames
+          {footer}
         </div>
       </div>
     </AbsoluteFill>

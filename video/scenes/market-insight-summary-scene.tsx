@@ -22,7 +22,7 @@ export function MarketInsightSummaryScene({data}: {data: MarketTemplateData}) {
     fps,
     config: {damping: 18, stiffness: 120},
   });
-  const opacity = interpolate(frame, [0, 20], [0, 1], {
+  const opacity = interpolate(frame, [0, 10], [0, 1], {
     extrapolateLeft: 'clamp',
     extrapolateRight: 'clamp',
   });
@@ -31,7 +31,7 @@ export function MarketInsightSummaryScene({data}: {data: MarketTemplateData}) {
   return (
     <AbsoluteFill
       style={{
-        padding: '140px 64px 220px',
+        padding: '108px 64px 170px',
         opacity,
         transform: `translateY(${28 - rise * 28}px)`,
       }}
@@ -43,6 +43,7 @@ export function MarketInsightSummaryScene({data}: {data: MarketTemplateData}) {
           fontWeight: 700,
           letterSpacing: '0.22em',
           textTransform: 'uppercase',
+          fontFamily: videoTheme.fonts.ui,
         }}
       >
         Crypto market intelligence
@@ -51,18 +52,26 @@ export function MarketInsightSummaryScene({data}: {data: MarketTemplateData}) {
         style={{
           marginTop: 22,
           color: videoTheme.foreground,
-          fontSize: 78,
+          fontSize: 58,
           lineHeight: 0.96,
-          fontWeight: 900,
-          letterSpacing: '-0.06em',
+          fontWeight: 700,
+          letterSpacing: '-0.03em',
+          fontFamily: videoTheme.fonts.hook,
+          textTransform: 'uppercase',
           maxWidth: 920,
         }}
       >
         {data.headline}
       </div>
 
-      <div style={{marginTop: 42, display: 'grid', gap: 18}}>
-        {data.supporting_stats.slice(0, 3).map((stat) => (
+      <div style={{marginTop: 32, display: 'grid', gap: 16}}>
+        {data.supporting_stats.slice(0, 3).map((stat, index) => {
+          const statOpacity = interpolate(frame, [12 + index * 26, 22 + index * 26], [0, 1], {
+            extrapolateLeft: 'clamp',
+            extrapolateRight: 'clamp',
+          });
+
+          return (
           <div
             key={stat.label}
             style={{
@@ -70,6 +79,7 @@ export function MarketInsightSummaryScene({data}: {data: MarketTemplateData}) {
               border: `1px solid ${videoTheme.border}`,
               background: 'rgba(255,255,255,0.05)',
               padding: '24px 28px',
+              opacity: statOpacity,
             }}
           >
             <div
@@ -79,6 +89,7 @@ export function MarketInsightSummaryScene({data}: {data: MarketTemplateData}) {
                 fontWeight: 700,
                 letterSpacing: '0.12em',
                 textTransform: 'uppercase',
+                fontFamily: videoTheme.fonts.ui,
               }}
             >
               {stat.label}
@@ -89,22 +100,28 @@ export function MarketInsightSummaryScene({data}: {data: MarketTemplateData}) {
                 color: videoTheme.foreground,
                 fontSize: 44,
                 fontWeight: 800,
-                letterSpacing: '-0.04em',
+                letterSpacing: '-0.02em',
+                fontFamily: videoTheme.fonts.metric,
               }}
             >
               {stat.value}
             </div>
           </div>
-        ))}
+          );
+        })}
       </div>
 
       <div
         style={{
-          marginTop: 30,
+          marginTop: 26,
           borderRadius: 32,
           border: `1px solid ${videoTheme.border}`,
           background: 'rgba(255,255,255,0.05)',
           padding: '28px 30px',
+          opacity: interpolate(frame, [92, 108], [0, 1], {
+            extrapolateLeft: 'clamp',
+            extrapolateRight: 'clamp',
+          }),
         }}
       >
         <div
@@ -122,6 +139,7 @@ export function MarketInsightSummaryScene({data}: {data: MarketTemplateData}) {
               fontWeight: 700,
               letterSpacing: '0.12em',
               textTransform: 'uppercase',
+              fontFamily: videoTheme.fonts.ui,
             }}
           >
             Narrative
@@ -141,9 +159,11 @@ export function MarketInsightSummaryScene({data}: {data: MarketTemplateData}) {
           style={{
             marginTop: 18,
             color: videoTheme.foreground,
-            fontSize: 34,
+            fontSize: 36,
             lineHeight: 1.28,
             maxWidth: 900,
+            fontFamily: videoTheme.fonts.ui,
+            fontWeight: 500,
           }}
         >
           {data.narrative_text}
@@ -166,6 +186,7 @@ function Pill({label, color}: {label: string; color: string}) {
         fontWeight: 700,
         letterSpacing: '0.04em',
         textTransform: 'uppercase',
+        fontFamily: videoTheme.fonts.ui,
       }}
     >
       {label}

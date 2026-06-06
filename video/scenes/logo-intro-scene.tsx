@@ -22,10 +22,10 @@ export function LogoIntroScene({
 }) {
   const frame = useCurrentFrame();
   const {fps} = useVideoConfig();
-  const fadeStart = Math.max(durationInFrames - 34, 108);
-  const fadeEnd = Math.max(durationInFrames - 10, fadeStart + 8);
-  const darkWorldStart = Math.max(durationInFrames - 58, 88);
-  const darkWorldEnd = Math.max(durationInFrames - 8, darkWorldStart + 10);
+  const fadeStart = Math.max(durationInFrames - 10, 24);
+  const fadeEnd = Math.max(durationInFrames - 1, fadeStart + 4);
+  const darkWorldStart = Math.max(durationInFrames - 14, 20);
+  const darkWorldEnd = Math.max(durationInFrames - 2, darkWorldStart + 4);
   const hookScale = spring({
     frame,
     fps,
@@ -40,7 +40,7 @@ export function LogoIntroScene({
     extrapolateLeft: 'clamp',
     extrapolateRight: 'clamp',
   });
-  const heroTranslateY = interpolate(frame, [0, 16, 44], [48, 0, -16], {
+  const heroTranslateY = interpolate(frame, [0, 12, 34], [0, -8, -20], {
     extrapolateLeft: 'clamp',
     extrapolateRight: 'clamp',
   });
@@ -52,19 +52,19 @@ export function LogoIntroScene({
     extrapolateLeft: 'clamp',
     extrapolateRight: 'clamp',
   });
-  const resultOpacity = interpolate(frame, [8, 18], [0, 1], {
+  const resultOpacity = interpolate(frame, [4, 10], [0, 1], {
     extrapolateLeft: 'clamp',
     extrapolateRight: 'clamp',
   });
-  const subtitleOpacity = interpolate(frame, [16, 28], [0, 1], {
+  const subtitleOpacity = interpolate(frame, [10, 18], [0, 1], {
     extrapolateLeft: 'clamp',
     extrapolateRight: 'clamp',
   });
-  const logoOpacity = interpolate(frame, [0, 6, 60], [0.4, 0.82, 0.22], {
+  const logoOpacity = interpolate(frame, [0, 6, 34], [0.72, 0.86, 0.28], {
     extrapolateLeft: 'clamp',
     extrapolateRight: 'clamp',
   });
-  const cardsOpacity = interpolate(frame, [18, 34], [0, 1], {
+  const cardsOpacity = interpolate(frame, [10, 18], [0, 1], {
     extrapolateLeft: 'clamp',
     extrapolateRight: 'clamp',
   });
@@ -138,6 +138,7 @@ export function LogoIntroScene({
               letterSpacing: '0.28em',
               textTransform: 'uppercase',
               fontWeight: 700,
+              fontFamily: videoTheme.fonts.ui,
             }}
           >
             AlphaFrames
@@ -158,10 +159,12 @@ export function LogoIntroScene({
         <div
           style={{
             color: '#07140d',
-            fontSize: 110,
+            fontSize: 92,
             lineHeight: 0.94,
-            fontWeight: 900,
-            letterSpacing: '-0.07em',
+            fontWeight: 700,
+            letterSpacing: '-0.03em',
+            textTransform: 'uppercase',
+            fontFamily: videoTheme.fonts.hook,
             maxWidth: 860,
             transform: `scale(${0.94 + hookScale * 0.06})`,
             textShadow: '0 10px 30px rgba(255,255,255,0.22)',
@@ -178,8 +181,9 @@ export function LogoIntroScene({
             color: resultColor,
             fontSize: 44,
             lineHeight: 1.04,
-            fontWeight: 800,
-            letterSpacing: '-0.04em',
+            fontWeight: 700,
+            letterSpacing: '-0.02em',
+            fontFamily: videoTheme.fonts.metric,
             opacity: resultOpacity,
             transform: `scale(${0.94 + resultScale * 0.06})`,
             boxShadow: '0 22px 80px rgba(7,20,13,0.24)',
@@ -196,7 +200,8 @@ export function LogoIntroScene({
             letterSpacing: '0.01em',
             lineHeight: 1.3,
             opacity: subtitleOpacity,
-            fontWeight: 600,
+            fontWeight: 500,
+            fontFamily: videoTheme.fonts.ui,
           }}
         >
           {hookSubtitle}
@@ -255,6 +260,7 @@ function ShowdownCard({
           fontWeight: 800,
           letterSpacing: '0.16em',
           textTransform: 'uppercase',
+          fontFamily: videoTheme.fonts.ui,
         }}
       >
         {isWinner ? 'Top Performer' : 'Challenger'}
@@ -265,8 +271,9 @@ function ShowdownCard({
           color: isWinner ? '#0b3a24' : '#6f7888',
           fontSize: 72,
           lineHeight: 0.94,
-          fontWeight: 900,
-          letterSpacing: '-0.06em',
+          fontWeight: 700,
+          letterSpacing: '-0.02em',
+          fontFamily: videoTheme.fonts.metric,
         }}
       >
         {ticker}
@@ -284,6 +291,7 @@ function ShowdownCard({
           fontWeight: 800,
           letterSpacing: '0.04em',
           textTransform: 'uppercase',
+          fontFamily: videoTheme.fonts.ui,
         }}
       >
         {isWinner ? 'Winner' : assetType}

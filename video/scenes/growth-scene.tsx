@@ -14,15 +14,15 @@ export function GrowthScene({
   const frame = useCurrentFrame();
   const {fps} = useVideoConfig();
   const lift = spring({
-    frame: Math.max(frame - 126, 0),
+    frame: Math.max(frame - 112, 0),
     fps,
     config: {damping: 18, stiffness: 120},
   });
-  const opacity = interpolate(frame, [126, 146], [0, 1], {
+  const opacity = interpolate(frame, [112, 126], [0, 1], {
     extrapolateLeft: 'clamp',
     extrapolateRight: 'clamp',
   });
-  const fadeOut = interpolate(frame, [154, 176], [1, 0], {
+  const fadeOut = interpolate(frame, [158, 184], [1, 0], {
     extrapolateLeft: 'clamp',
     extrapolateRight: 'clamp',
   });
@@ -41,10 +41,10 @@ export function GrowthScene({
         style={{
           color,
           fontSize: 118,
-          fontWeight: 900,
+          fontWeight: 700,
           lineHeight: 0.95,
-          letterSpacing: '-0.05em',
-          fontFamily: 'sans-serif',
+          letterSpacing: '-0.02em',
+          fontFamily: videoTheme.fonts.metric,
         }}
       >
         {formatCurrency(valueToday, currency)}
@@ -54,7 +54,8 @@ export function GrowthScene({
           marginTop: 18,
           color: videoTheme.foreground,
           fontSize: 54,
-          fontFamily: 'sans-serif',
+          fontFamily: videoTheme.fonts.metric,
+          fontWeight: 700,
         }}
       >
         {formatPercent(returnPercent)}

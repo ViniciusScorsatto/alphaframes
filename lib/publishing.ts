@@ -5,60 +5,64 @@ import {openai} from '@/lib/openai';
 import {TEMPLATE_OPTIONS} from '@/lib/constants';
 import type {AnyGeneratedVideoData, PublishingDraft, PublishingDraftMetadata} from '@/types';
 
-const TEMPLATE_PATH = path.join(process.cwd(), 'config', 'publishing', 'youtube-shorts-template.md');
+const PROMPT_PATH = path.join(process.cwd(), 'config', 'publishing', 'alphaframes-youtube-shorts-prompt.md');
 const FOOTER_PATH = path.join(process.cwd(), 'config', 'publishing', 'youtube-description-footer.md');
-const DEFAULT_PUBLISHING_MODEL = 'gpt-4.1-mini';
-const TEMPLATE_NAME = 'youtube-shorts-template';
+const DEFAULT_PUBLISHING_MODEL = 'gpt-5.4-mini';
+const TEMPLATE_NAME = 'alphaframes-youtube-shorts-prompt';
 
 const publishingDraftSchema = z.object({
   summary: z.string().trim().min(1),
   platforms: z.object({
     youtube: z.object({
       title: z.string().trim().min(1).max(100),
-      description: z.string().trim().min(1).max(3000),
-      tags: z.array(z.string().trim().min(1).max(80)).min(20).max(35),
+      description: z.string().trim().min(1).max(700),
+      tags: z.array(z.string().trim().min(1).max(80)).min(12).max(18),
       hashtags: z.array(z.string().trim().min(1).max(50)).min(1).max(10),
       thumbnailNotes: z.string().trim().max(500).default(''),
     }),
   }),
 });
 
-const templateSectionsToKeep = new Set([
-  'Goal',
-  'Channel Profile',
-  'Compliance And Accuracy Rules',
-  'YouTube Title Rules',
-  'YouTube Description Rules',
-  'Tags Rules',
-  'Hashtag Rules',
-  'Thumbnail / Cover Notes',
-  'Required JSON Shape',
-]);
+const publishingDraftJsonSchema = {
+  type: 'object',
+  additionalProperties: false,
+  required: ['summary', 'platforms'],
+  properties: {
+    summary: {type: 'string', minLength: 1},
+    platforms: {
+      type: 'object',
+      additionalProperties: false,
+      required: ['youtube'],
+      properties: {
+        youtube: {
+          type: 'object',
+          additionalProperties: false,
+          required: ['title', 'description', 'tags', 'hashtags', 'thumbnailNotes'],
+          properties: {
+            title: {type: 'string', minLength: 1, maxLength: 100},
+            description: {type: 'string', minLength: 1, maxLength: 700},
+            tags: {
+              type: 'array',
+              minItems: 12,
+              maxItems: 18,
+              items: {type: 'string', minLength: 1, maxLength: 80},
+            },
+            hashtags: {
+              type: 'array',
+              minItems: 1,
+              maxItems: 10,
+              items: {type: 'string', minLength: 1, maxLength: 50},
+            },
+            thumbnailNotes: {type: 'string', maxLength: 500},
+          },
+        },
+      },
+    },
+  },
+} as const;
 
-export async function loadPublishingTemplate() {
-  return readFile(TEMPLATE_PATH, 'utf8');
-}
-
-export function compactPublishingTemplate(template: string) {
-  const lines = template.split(/\r?\n/);
-  const compacted: string[] = [];
-  let keepSection = true;
-
-  for (const line of lines) {
-    const heading = line.match(/^##\s+(.+)$/);
-    if (heading) {
-      keepSection = templateSectionsToKeep.has(heading[1].trim());
-    }
-
-    if (keepSection || line.startsWith('# ')) {
-      compacted.push(line);
-    }
-  }
-
-  return compacted
-    .join('\n')
-    .replace(/\n{3,}/g, '\n\n')
-    .trim();
+export async function loadPublishingPrompt() {
+  return readFile(PROMPT_PATH, 'utf8');
 }
 
 export async function loadYouTubeDescriptionFooter() {
@@ -217,8 +221,8 @@ export function buildPublishingMetadata({
   };
 }
 
-export function extractResponseText(response: {choices?: Array<{message?: {content?: string | null}}>}): string {
-  return response.choices?.[0]?.message?.content?.trim() ?? '';
+export function extractResponseText(response: {output_text?: string}): string {
+  return response.output_text?.trim() ?? '';
 }
 
 function parseDraftJson(responseText: string): PublishingDraft {
@@ -255,31 +259,32 @@ export async function generatePublishingDraft({
     throw new Error('OPENAI_API_KEY is required to generate publishing drafts.');
   }
 
-  const [template, footer] = await Promise.all([loadPublishingTemplate(), loadYouTubeDescriptionFooter()]);
-  const compactTemplate = compactPublishingTemplate(template);
+  const [prompt, footer] = await Promise.all([loadPublishingPrompt(), loadYouTubeDescriptionFooter()]);
   const metadata = buildPublishingMetadata({job, extraContext, outputRenderPath});
   const model = process.env.OPENAI_PUBLISHING_MODEL || DEFAULT_PUBLISHING_MODEL;
 
-  const response = await openai.chat.completions.create({
+  const response = await openai.responses.create({
     model,
-    messages: [
-      {
-        role: 'system',
-        content:
-          'You generate structured JSON publishing drafts for YouTube Shorts. Return JSON only and never invent facts not present in metadata.',
+    instructions: [
+      'You generate structured publishing drafts for AlphaFrames YouTube Shorts.',
+      'Return only data that matches the requested JSON schema.',
+      'Never invent facts, numbers, dates, rankings, catalysts, tickers, or company names not present in metadata.',
+      prompt,
+    ].join('\n\n'),
+    input: [
+      copyModelInstructions ? `\n\nAdditional operator instructions:\n${copyModelInstructions}` : '',
+      `\n\nVideo metadata JSON:\n${JSON.stringify(metadata, null, 2)}`,
+    ].join(''),
+    text: {
+      format: {
+        type: 'json_schema',
+        name: 'alphaframes_publishing_draft',
+        strict: true,
+        schema: publishingDraftJsonSchema,
       },
-      {
-        role: 'user',
-        content: [
-          compactTemplate,
-          copyModelInstructions ? `\n\nAdditional operator instructions:\n${copyModelInstructions}` : '',
-          `\n\nVideo metadata JSON:\n${JSON.stringify(metadata, null, 2)}`,
-        ].join(''),
-      },
-    ],
-    response_format: {type: 'json_object'},
+    },
     temperature: 0.45,
-    max_tokens: 900,
+    max_output_tokens: 1200,
   });
 
   const draft = parseDraftJson(extractResponseText(response));

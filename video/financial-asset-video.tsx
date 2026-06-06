@@ -19,11 +19,12 @@ import {DisclaimerScene} from './scenes/disclaimer-scene';
 import {LogoIntroScene} from './scenes/logo-intro-scene';
 import {ResultScene} from './scenes/result-scene';
 import {TimelineScene} from './scenes/timeline-scene';
+import {SHORT_TIMING} from './timing';
 
 export function FinancialAssetVideo({data}: {data: GeneratedVideoData}) {
   const introCopy = getSingleIntroCopy(data);
-  const introDuration = 172;
-  const contentStart = 130;
+  const introDuration = SHORT_TIMING.introDuration;
+  const contentStart = SHORT_TIMING.contentStart;
   const musicDuckEndFrame = getMusicDuckEndFrame(data);
   const musicPath = getMusicStaticPath(data);
   const voiceoverPath = toPublicStaticPath(data.voiceoverUrl);
@@ -93,8 +94,12 @@ export function FinancialAssetVideo({data}: {data: GeneratedVideoData}) {
       <Sequence from={contentStart}>
         <ResultScene label={data.resultLabel} insights={data.insights} analystNote={data.analystNote} />
       </Sequence>
-      <CallToActionScene />
-      <DisclaimerScene />
+      <CallToActionScene
+        title={`Save this ${data.asset} snapshot`}
+        subtitle="Track the move, not the noise."
+        footer="Follow AlphaFrames"
+      />
+      <DisclaimerScene startFrame={SHORT_TIMING.disclaimerStart} />
     </AbsoluteFill>
   );
 }

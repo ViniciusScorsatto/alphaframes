@@ -26,12 +26,13 @@ export function HookScene({label}: {label: string}) {
       >
         <div
           style={{
-            fontFamily: 'sans-serif',
             color: videoTheme.foreground,
             fontSize: 110,
             lineHeight: 1,
-            fontWeight: 800,
-            letterSpacing: '-0.05em',
+            fontWeight: 700,
+            letterSpacing: '-0.03em',
+            fontFamily: videoTheme.fonts.hook,
+            textTransform: 'uppercase',
             textAlign: 'center',
           }}
         >

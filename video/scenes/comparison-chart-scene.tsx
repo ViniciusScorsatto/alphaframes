@@ -137,10 +137,10 @@ function AssetChip({
         fill="rgba(8, 8, 8, 0.88)"
         stroke="rgba(255,255,255,0.10)"
       />
-      <text x="18" y="32" fill={tickerColor} fontSize="24" fontWeight="800">
+      <text x="18" y="32" fill={tickerColor} fontSize="24" fontWeight="700" fontFamily={videoTheme.fonts.ui}>
         {ticker}
       </text>
-      <text x="18" y="64" fill={valueColor} fontSize="32" fontWeight="900">
+      <text x="18" y="64" fill={valueColor} fontSize="32" fontWeight="700" fontFamily={videoTheme.fonts.metric}>
         {value}
       </text>
     </g>

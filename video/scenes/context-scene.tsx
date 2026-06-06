@@ -13,7 +13,7 @@ export function ContextScene({label, investmentLabel}: {label: string; investmen
       <div
         style={{
           color: videoTheme.secondary,
-          fontFamily: 'sans-serif',
+          fontFamily: videoTheme.fonts.ui,
           fontSize: 48,
           textTransform: 'uppercase',
           letterSpacing: '0.12em',
@@ -30,7 +30,7 @@ export function ContextScene({label, investmentLabel}: {label: string; investmen
           background: 'rgba(255,255,255,0.06)',
           padding: '18px 28px',
           color: videoTheme.foreground,
-          fontFamily: 'sans-serif',
+          fontFamily: videoTheme.fonts.ui,
           fontSize: 30,
           fontWeight: 600,
           letterSpacing: '0.02em',

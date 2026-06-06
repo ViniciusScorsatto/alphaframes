@@ -4,7 +4,7 @@ import {videoTheme} from '../theme';
 
 export function ResultScene({label, insights, analystNote}: {label: string; insights: string[]; analystNote?: string}) {
   const frame = useCurrentFrame();
-  const opacity = interpolate(frame, [158, 182], [0, 1], {
+  const opacity = interpolate(frame, [150, 166], [0, 1], {
     extrapolateLeft: 'clamp',
     extrapolateRight: 'clamp',
   });
@@ -20,14 +20,41 @@ export function ResultScene({label, insights, analystNote}: {label: string; insi
           boxShadow: '0 18px 80px rgba(0, 0, 0, 0.35)',
         }}
       >
-        <div style={{fontSize: 42, color: videoTheme.secondary, textTransform: 'uppercase', letterSpacing: '0.12em'}}>
+        <div
+          style={{
+            fontSize: 38,
+            color: videoTheme.secondary,
+            textTransform: 'uppercase',
+            letterSpacing: '0.12em',
+            fontFamily: videoTheme.fonts.ui,
+            fontWeight: 600,
+          }}
+        >
           {formatDatesInText(label)}
         </div>
-        <div style={{marginTop: 18, fontSize: 38, color: videoTheme.foreground, lineHeight: 1.3}}>
+        <div
+          style={{
+            marginTop: 18,
+            fontSize: 38,
+            color: videoTheme.foreground,
+            lineHeight: 1.24,
+            fontFamily: videoTheme.fonts.ui,
+            fontWeight: 500,
+          }}
+        >
           {formatDatesInText(insights[0])}
         </div>
         {analystNote ? (
-          <div style={{marginTop: 16, fontSize: 27, color: videoTheme.secondary, lineHeight: 1.35}}>
+          <div
+            style={{
+              marginTop: 16,
+              fontSize: 27,
+              color: videoTheme.secondary,
+              lineHeight: 1.28,
+              fontFamily: videoTheme.fonts.ui,
+              fontWeight: 500,
+            }}
+          >
             {formatDatesInText(analystNote)}
           </div>
         ) : null}

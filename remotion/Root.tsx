@@ -4,6 +4,7 @@ import {MarketInsightVideo} from '../video/market-insight-video';
 import type {GeneratedVideoData, MarketTemplateData} from '../types';
 import {VIDEO} from '../lib/constants';
 import {FinancialAssetVideo} from '../video/financial-asset-video';
+import {FontStyles} from '../video/fonts';
 
 const defaultProps: GeneratedVideoData = {
   kind: 'single',
@@ -42,10 +43,11 @@ const defaultMarketProps: MarketTemplateData = {
   headline: 'Unusual accumulation detected in ETH',
   supporting_stats: [
     {label: '24h change', value: '+0.84%'},
-    {label: 'Volume ratio', value: '0.0842'},
+    {label: 'Turnover Ratio', value: '0.0842'},
     {label: '24h volume', value: '$3,481,000,000'},
   ],
-  narrative_text: 'Volume is increasing while price remains stable. This pattern has historically appeared before larger directional moves.',
+  narrative_text:
+    'Volume is increasing while price shows limited directional follow-through. This is positioning, not confirmation.',
   confidence: 0.68,
   risk_label: 'medium',
   data_points: {
@@ -58,6 +60,7 @@ const defaultMarketProps: MarketTemplateData = {
 export const RemotionRoot = () => {
   return (
     <>
+      <FontStyles />
       <Composition
         id="FinancialAssetVideo"
         component={FinancialAssetVideo}

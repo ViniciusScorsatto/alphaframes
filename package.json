@@ -8,7 +8,7 @@
     "start": "next start",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "render": "remotion render remotion/index.ts FinancialAssetVideo out/video.mp4"
+    "render": "remotion render remotion/index.ts FinancialAssetVideo out/video.mp4 && node scripts/trim-video.mjs out/video.mp4 12"
   },
   "dependencies": {
     "@google-cloud/text-to-speech": "^6.4.0",

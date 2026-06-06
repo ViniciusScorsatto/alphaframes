@@ -6,7 +6,16 @@ import {videoTheme} from '../theme';
 export function ComparisonHeaderScene({data}: {data: ComparisonVideoData}) {
   return (
     <AbsoluteFill style={{justifyContent: 'flex-start', padding: '110px 72px 0'}}>
-      <div style={{fontSize: 96, fontWeight: 900, letterSpacing: '-0.06em', color: videoTheme.foreground}}>
+      <div
+        style={{
+          fontSize: 88,
+          fontWeight: 700,
+          letterSpacing: '-0.03em',
+          color: videoTheme.foreground,
+          fontFamily: videoTheme.fonts.hook,
+          textTransform: 'uppercase',
+        }}
+      >
         {data.primaryAsset.ticker} vs {data.secondaryAsset.ticker}
       </div>
       <div
@@ -17,15 +26,26 @@ export function ComparisonHeaderScene({data}: {data: ComparisonVideoData}) {
           color: videoTheme.secondary,
           lineHeight: 1.35,
           letterSpacing: '0.01em',
+          fontFamily: videoTheme.fonts.ui,
         }}
       >
         {formatAssetIdentity(data.primaryAsset.ticker, data.primaryAsset.name)} vs{' '}
         {formatAssetIdentity(data.secondaryAsset.ticker, data.secondaryAsset.name)}
       </div>
-      <div style={{marginTop: 20, fontSize: 36, color: videoTheme.secondary, textTransform: 'uppercase', letterSpacing: '0.12em'}}>
+      <div
+        style={{
+          marginTop: 20,
+          fontSize: 34,
+          color: videoTheme.secondary,
+          textTransform: 'uppercase',
+          letterSpacing: '0.12em',
+          fontFamily: videoTheme.fonts.ui,
+          fontWeight: 600,
+        }}
+      >
         {formatCurrency(data.investment, data.currency)} into each asset
       </div>
-      <div style={{marginTop: 20, fontSize: 30, color: videoTheme.foreground}}>
+      <div style={{marginTop: 20, fontSize: 30, color: videoTheme.foreground, fontFamily: videoTheme.fonts.ui}}>
         {formatDisplayDate(data.startDate)} to {formatDisplayDate(data.endDate)}
       </div>
     </AbsoluteFill>
